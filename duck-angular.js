@@ -39,7 +39,7 @@ var Container = function Container() {
 		var controller = self.controller(controllerName, scope);
 		return this.view(viewUrl, controller, scope).then(function(compiledTemplate) {
 			console.log("Controller is " + controller);
-			console.log(compiledTemplate);
+			console.log("View is " + compiledTemplate);
 			console.log("Scope is " + scope);
 			return { controller: controller, view: compiledTemplate, scope: scope };
 		});
