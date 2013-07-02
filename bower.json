@@ -1,7 +1,7 @@
 {
-  "name": "Duck",
+  "name": "duck-angular",
   "version": "0.0.0",
-  "main": "duck.js",
+  "main": "duck-angular.js",
   "ignore": [
     "**/.*",
     "node_modules",
