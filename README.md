@@ -5,8 +5,11 @@ A container for bootstrapping and testing AngularJS views and controllers in mem
 
 duck-angular is available as a Bower package. Install it using bower 'install duck-angular'.
 
+Include it using script tags.
+
 Use it in your tests, like so:
 
+          var container = new Container();
           container.bootstrap("YourApp"); // Name of your module
           container.mvc("SomeController", "templates/some-template.html").then(function(mvc) {
             console.log("Loaded all the good stuff");
