@@ -27,7 +27,7 @@ var Container = function Container() {
 			wrappingElement.append(viewHTML);
 			wrappingElement.data("$ngControllerController", controller);
 
-			var compiledTemplate = self.compileService(wrappingElement.contents())(scope);
+			var compiledTemplate = self.compileService(wrappingElement)(scope);
 			scope.$apply();
 			deferred.resolve(compiledTemplate);
 		});
@@ -38,9 +38,6 @@ var Container = function Container() {
 		var scope = self.newScope();
 		var controller = self.controller(controllerName, scope);
 		return this.view(viewUrl, controller, scope).then(function(compiledTemplate) {
-			console.log("Controller is " + controller);
-			console.log("View is " + compiledTemplate);
-			console.log("Scope is " + scope);
 			return { controller: controller, view: compiledTemplate, scope: scope };
 		});
 	};
@@ -57,10 +54,11 @@ var DuckDOM = function DuckDOM(view, scope) {
 			else if (element.nodeName === "INPUT" && element.type === "button") {
 				elements.submit();
 			}
+			else if (element.nodeName === "INPUT" && element.type === "checkbox") {
+				elements.trigger("click");
+			}
 		});
 		scope.$apply();
-		console.log("Elements are: ");
-		console.log(elements);
 	};
 
 	this.element = function(selector) {
