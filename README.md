@@ -19,12 +19,12 @@ Use it in your tests, like so:
             var controller = mvc.controller;
             var view = mvc.view;
             var scope = mvc.scope;
-            expect(angular.element(view.find("#errorMsg")[0].outerHTML)[0].style.cssText).to.eql("display: none;");
-            var theBox = view.find("#someTextBox");
             var dom = new DuckDOM(view, scope);
+            expect(dom.element("#errorMsg").css("display")).to.eql("none");
+            var theBox = view.find("#someTextBox");
             dom.interactWith("#someTextBox", "Some Wrong Data");
             dom.interactWith("#submit_details");
-            expect(angular.element(view.find("#errorMsg")[0].outerHTML)[0].style.cssText).to.eql("");
+            expect(dom.element("#errorMsg").css("display")).to.eql("");
           });
         });
       });
