@@ -5,7 +5,7 @@ A container for bootstrapping and testing AngularJS views and controllers in mem
 
 duck-angular is available as a Bower package. Install it using bower 'install duck-angular'.
 
-Include it using script tags. Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
+Include it using RequireJS' define(). Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
 
 Use it in your tests, like so:
 
