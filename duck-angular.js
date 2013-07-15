@@ -45,6 +45,45 @@ var Container = function Container() {
 	};
 };
 
+var DuckInteraction2 = function DuckInteraction2(duckDom) {
+	var self = this;
+	this.with = function(selector, value) {
+		self.interaction = function() {
+		  duckDom.interactWith(selector, value);
+		});
+		return self;
+	};
+
+	this.run = function() {
+		self.interaction();
+	};
+
+	this.waitFor = function(o, fn) {
+		var deferred = Q.defer();
+		var originalFn = o[fn];
+		o[fn] = function() {
+			return originalFn.apply(o, arguments).then(function(result) {
+				deferred.resolve();
+				return result;
+		  });
+		};
+		self.run();
+		return deferred.promise;
+	};
+
+	this.waitForSync = function(o, fn) {
+		var deferred = Q.defer();
+		var originalFn = o[fn];
+		o[fn] = function() {
+			var result = originalFn.apply(o, arguments);
+			deferred.resolve();
+			return result;
+		};
+		self.run();
+		return deferred.promise;
+	};
+};
+
 var DuckInteraction = function DuckInteraction(interaction) {
   this.do = interaction;
 
@@ -73,7 +112,7 @@ var DuckInteraction = function DuckInteraction(interaction) {
     var interactionPromise = this.waitingFor(then);
     this.do();
     return interactionPromise;
-  }
+  };
 };
 
 var DuckDOM = function DuckDOM(view, scope) {
@@ -100,33 +139,33 @@ var DuckDOM = function DuckDOM(view, scope) {
     return self;
  	};
 
-  this.interactAndWait = function(selector, value) {
-    return new DuckInteraction(function() {
-      self.interactWith(selector, value);
-      return this;
-    });
-  };
+	this.interactAndWait = function(selector, value) {
+		return new DuckInteraction(function() {
+		  self.interactWith(selector, value);
+		  return this;
+		});
+	};
 
 	this.element = function(selector) {
 		return angular.element(selector, view);
 	};
 
-  this.assertAfter = function(o, fn, assertBlock) {
-    var deferred = Q.defer();
-    var originalFn = o[fn];
-    o[fn] = function() {
-        return originalFn.apply(o, arguments).then(function(result) {
-          try {
-            assertBlock();
-            deferred.resolve();
-          } catch(e) {
-            deferred.reject(e);
-          } finally {
-            return result;
-          }
-        });
-    };
+	this.assertAfter = function(o, fn, assertBlock) {
+		var deferred = Q.defer();
+		var originalFn = o[fn];
+		o[fn] = function() {
+		    return originalFn.apply(o, arguments).then(function(result) {
+		      try {
+		        assertBlock();
+		        deferred.resolve();
+		      } catch(e) {
+		        deferred.reject(e);
+		      } finally {
+		        return result;
+		      }
+		    });
+		};
 
-    return deferred.promise;
+	    return deferred.promise;
   }
 };
