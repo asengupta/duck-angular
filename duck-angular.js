@@ -1,171 +1,120 @@
-var Container = function Container() {
-	var self = this;
-	this.bootstrap = function(moduleName) {
-		if (!angular) throw new Error("AngularJS not available. STOP.");
-		if (!require) throw new Error("RequireJS not available. STOP.");
-		if (!_) throw new Error("Underscore not available. STOP.");
+define(["underscore", "angular"], function (_, angular) {
+  var Container = function Container() {
+    var self = this;
+    this.bootstrap = function (moduleName) {
+      self.injector = angular.bootstrap("#dummyElement", [moduleName]);
+      self.controllerProvider = self.injector.get("$controller");
+      self.rootScope = self.injector.get("$rootScope");
+      self.compileService = self.injector.get("$compile");
+    };
 
-		self.injector = angular.bootstrap("#dummyElement", [moduleName]);
-		self.controllerProvider = self.injector.get("$controller");
-      	self.rootScope = self.injector.get("$rootScope");
-      	self.compileService = self.injector.get("$compile");
-	};
+    this.newScope = function () {
+      return self.rootScope.$new();
+    };
 
-	this.newScope = function() {
-		return self.rootScope.$new();
-	};
+    this.controller = function (controllerName, dependencies) {
+      return self.controllerProvider(controllerName, dependencies);
+    };
 
-	this.controller = function(controllerName, mocks) {
-		return self.controllerProvider(controllerName, mocks);
-	};
-
-	this.view = function(viewUrl, controller, scope) {
-		var deferred = Q.defer();
-		var childScope = self.rootScope;
-		require(["text!" + viewUrl], function(viewHTML) {
-			var wrappingElement = angular.element("<div></div>");
-			wrappingElement.append(viewHTML);
-			wrappingElement.data("$ngControllerController", controller);
-			var compiledTemplate = self.compileService(wrappingElement)(scope);
-			scope.$apply();
-			deferred.resolve(compiledTemplate);
-		});
-		return deferred.promise;
-	};
-
-	this.mvc = function(controllerName, viewUrl, mocks) {
-    mocks = mocks ? mocks : {};
-		var scope = self.newScope();
-    mocks.$scope = scope;
-
-		var controller = self.controller(controllerName, mocks);
-		return this.view(viewUrl, controller, scope).then(function(compiledTemplate) {
-			return { controller: controller, view: compiledTemplate, scope: scope };
-		});
-	};
-};
-
-var DuckInteraction2 = function DuckInteraction2(duckDom) {
-	var self = this;
-	this.with = function(selector, value) {
-		self.interaction = function() {
-		  duckDom.interactWith(selector, value);
-		});
-		return self;
-	};
-
-	this.run = function() {
-		self.interaction();
-	};
-
-	this.waitFor = function(o, fn) {
-		var deferred = Q.defer();
-		var originalFn = o[fn];
-		o[fn] = function() {
-			return originalFn.apply(o, arguments).then(function(result) {
-				deferred.resolve();
-				return result;
-		  });
-		};
-		self.run();
-		return deferred.promise;
-	};
-
-	this.waitForSync = function(o, fn) {
-		var deferred = Q.defer();
-		var originalFn = o[fn];
-		o[fn] = function() {
-			var result = originalFn.apply(o, arguments);
-			deferred.resolve();
-			return result;
-		};
-		self.run();
-		return deferred.promise;
-	};
-};
-
-var DuckInteraction = function DuckInteraction(interaction) {
-  this.do = interaction;
-
-  this.waitFor = function(o, fn) {
-    this.waitingFor = function(then) {
+    this.view = function (viewUrl, controller, scope) {
       var deferred = Q.defer();
-      var originalFn = o[fn];
-      o[fn] = function() {
-        return originalFn.apply(o, arguments).then(function(result) {
-          try {
-            then();
-            deferred.resolve();
-          } catch(e) {
-            deferred.reject(e);
-          } finally {
-            return result;
-          }
-        });
-      };
+      var childScope = self.rootScope;
+      require(["text!" + viewUrl], function (viewHTML) {
+        var wrappingElement = angular.element("<div></div>");
+        wrappingElement.append(viewHTML);
+        wrappingElement.data("$ngControllerController", controller);
+        var compiledTemplate = self.compileService(wrappingElement)(scope);
+        scope.$apply();
+        deferred.resolve(compiledTemplate);
+      });
       return deferred.promise;
     };
-    return this;
+
+    this.mvc = function (controllerName, viewUrl, dependencies) {
+      dependencies = dependencies ? dependencies : {};
+      var scope = self.newScope();
+      dependencies.$scope = scope;
+
+      var controller = self.controller(controllerName, dependencies);
+      return this.view(viewUrl, controller, scope).then(function (compiledTemplate) {
+        return { controller: controller, view: compiledTemplate, scope: scope };
+      });
+    };
   };
 
-  this.after =  function(then) {
-    var interactionPromise = this.waitingFor(then);
-    this.do();
-    return interactionPromise;
+  var DuckUIInteraction = function DuckUIInteraction(duckDom) {
+    var self = this;
+    this.with = function (selector, value) {
+      self.interaction = function () {
+        duckDom.interactWith(selector, value);
+      };
+      return self;
+    };
+
+    this.run = function () {
+      self.interaction();
+      return self;
+    };
+
+    this.waitFor = function (o, fn) {
+      var deferred = Q.defer();
+      var originalFn = o[fn];
+      o[fn] = function () {
+        return originalFn.apply(o, arguments).then(function (result) {
+          duckDom.apply();
+          deferred.resolve();
+          return result;
+        });
+      };
+      self.run();
+      return deferred.promise;
+    };
+
+    this.waitForSync = function (o, fn) {
+      var deferred = Q.defer();
+      var originalFn = o[fn];
+      o[fn] = function () {
+        var result = originalFn.apply(o, arguments);
+        duckDom.apply();
+        deferred.resolve();
+        return result;
+      };
+      self.run();
+      return deferred.promise;
+    };
   };
-};
 
-var DuckDOM = function DuckDOM(view, scope) {
-  var self = this;
-	this.interactWith = function(selector, value) {
-		var elements = angular.element(selector, view);
+  var DuckDOM = function DuckDOM(view, scope) {
+    var self = this;
+    this.interactWith = function (selector, value) {
+      var elements = angular.element(selector, view);
 
-		_.each(elements, function(element) {
-			if (element.nodeName === "INPUT" && element.type === "text") {
-				elements.val(value).trigger("input");
-			}
-			else if (element.nodeName === "INPUT" && element.type === "button") {
-				elements.submit();
-			}
-			else if (element.nodeName === "INPUT" && element.type === "checkbox") {
-				elements.click().trigger("click");
-			}
-      else if (element.nodeName === "SELECT") {
-        angular.element(elements[0].options[value]).attr("selected", true);
-        elements.trigger("change");
-      }
-		});
-		scope.$apply();
-    return self;
- 	};
+      _.each(elements, function (element) {
+        if (element.nodeName === "INPUT" && element.type === "text") {
+          elements.val(value).trigger("input");
+        }
+        else if (element.nodeName === "INPUT" && element.type === "button") {
+          elements.submit();
+        }
+        else if (element.nodeName === "INPUT" && element.type === "checkbox") {
+          elements.click().trigger("click");
+        }
+        else if (element.nodeName === "SELECT") {
+          angular.element(elements[0].options[value]).attr("selected", true);
+          elements.trigger("change");
+        }
+      });
+      scope.$apply();
+      return self;
+    };
 
-	this.interactAndWait = function(selector, value) {
-		return new DuckInteraction(function() {
-		  self.interactWith(selector, value);
-		  return this;
-		});
-	};
+    this.apply = function () {
+      scope.$apply();
+    };
 
-	this.element = function(selector) {
-		return angular.element(selector, view);
-	};
-
-	this.assertAfter = function(o, fn, assertBlock) {
-		var deferred = Q.defer();
-		var originalFn = o[fn];
-		o[fn] = function() {
-		    return originalFn.apply(o, arguments).then(function(result) {
-		      try {
-		        assertBlock();
-		        deferred.resolve();
-		      } catch(e) {
-		        deferred.reject(e);
-		      } finally {
-		        return result;
-		      }
-		    });
-		};
-
-	    return deferred.promise;
-  }
-};
+    this.element = function (selector) {
+      return angular.element(selector, view);
+    };
+  };
+  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
+});
