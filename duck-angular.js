@@ -16,13 +16,14 @@ define(["underscore", "angular"], function (_, angular) {
       return self.controllerProvider(controllerName, dependencies);
     };
 
-    this.view = function (viewUrl, controller, scope) {
+    this.view = function (viewUrl, controller, scope, preRenderBlock) {
       var deferred = Q.defer();
       var childScope = self.rootScope;
       require(["text!" + viewUrl], function (viewHTML) {
         var wrappingElement = angular.element("<div></div>");
         wrappingElement.append(viewHTML);
         wrappingElement.data("$ngControllerController", controller);
+        if (preRenderBlock) preRenderBlock(self.injector);
         var compiledTemplate = self.compileService(wrappingElement)(scope);
         scope.$apply();
         deferred.resolve(compiledTemplate);
@@ -30,13 +31,13 @@ define(["underscore", "angular"], function (_, angular) {
       return deferred.promise;
     };
 
-    this.mvc = function (controllerName, viewUrl, dependencies) {
+    this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock) {
       dependencies = dependencies ? dependencies : {};
       var scope = self.newScope();
       dependencies.$scope = scope;
 
       var controller = self.controller(controllerName, dependencies);
-      return this.view(viewUrl, controller, scope).then(function (compiledTemplate) {
+      return this.view(viewUrl, controller, scope, preRenderBlock).then(function (compiledTemplate) {
         return { controller: controller, view: compiledTemplate, scope: scope };
       });
     };
@@ -86,6 +87,11 @@ define(["underscore", "angular"], function (_, angular) {
 
   var DuckDOM = function DuckDOM(view, scope) {
     var self = this;
+    var applySafely = function() {
+      if(!scope.$$phase) {
+        scope.$apply();
+      }
+    };
     this.interactWith = function (selector, value) {
       var elements = angular.element(selector, view);
 
@@ -94,7 +100,7 @@ define(["underscore", "angular"], function (_, angular) {
           elements.val(value).trigger("input");
         }
         else if (element.nodeName === "INPUT" && element.type === "button") {
-          elements.submit();
+          elements.submit().trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox") {
           elements.click().trigger("click");
@@ -104,12 +110,12 @@ define(["underscore", "angular"], function (_, angular) {
           elements.trigger("change");
         }
       });
-      scope.$apply();
+      applySafely();
       return self;
     };
 
     this.apply = function () {
-      scope.$apply();
+      applySafely();
     };
 
     this.element = function (selector) {
