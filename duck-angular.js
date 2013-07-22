@@ -63,8 +63,13 @@ define(["underscore", "angular"], function (_, angular) {
       o[fn] = function () {
         return originalFn.apply(o, arguments).then(function (result) {
           duckDom.apply();
+          o[fn] = originalFn;
           deferred.resolve();
           return result;
+        }, function(errors) {
+          duckDom.apply();
+          o[fn] = originalFn;
+          deferred.reject(errors);
         });
       };
       self.run();
@@ -102,8 +107,15 @@ define(["underscore", "angular"], function (_, angular) {
         else if (element.nodeName === "INPUT" && element.type === "button") {
           elements.submit().trigger("click");
         }
-        else if (element.nodeName === "INPUT" && element.type === "checkbox") {
+        else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
           elements.click().trigger("click");
+          elements.prop("checked", !elements.prop("checked"));
+        }
+        else if (element.nodeName === "INPUT" && element.type === "checkbox" && value != null) {
+          while(elements.prop("checked") != value) {
+            elements.click().trigger("click");
+            elements.prop("checked", !elements.prop("checked"));
+          }
         }
         else if (element.nodeName === "SELECT") {
           angular.element(elements[0].options[value]).attr("selected", true);
