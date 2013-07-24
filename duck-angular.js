@@ -111,6 +111,10 @@ define(["underscore", "angular"], function (_, angular) {
           elements.click().trigger("click");
           elements.prop("checked", !elements.prop("checked"));
         }
+        else if (element.nodeName === "INPUT" && element.type === "radio") {
+          elements.prop("checked", !elements.prop("checked"));
+          elements.trigger("change");
+        }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value != null) {
           while(elements.prop("checked") != value) {
             elements.click().trigger("click");
