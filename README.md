@@ -15,7 +15,9 @@ Use it in your tests, like so:
         it("can show error message for non-numeric input", function() {
           var container = new Duck.Container();
           container.bootstrap("YourApp"); // Name of your module
-          container.mvc("SomeController", "templates/some-template.html").then(function(mvc) {
+          var dependencies = {service: {}}; // Partially or fully mocked service
+          var preRenderBlock = function(scope) {}; // Anything you want to do before template is bound to scope, like setting up scope watches, etc. 
+          container.mvc("SomeController", "templates/some-template.html", dependencies, preRenderBlock, {dontWait: false}).then(function(mvc) {
             console.log("Loaded all the good stuff");
             var controller = mvc.controller;
             var view = mvc.view;
