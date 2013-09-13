@@ -1,44 +1,123 @@
-define(["underscore", "angular"], function (_, angular) {
-  var Container = function Container() {
+define(["underscore", "angular", "Q"], function (_, angular, Q) {
+  var Container = function Container(injector, app) {
     var self = this;
-    this.bootstrap = function (moduleName) {
-      self.injector = angular.bootstrap("#dummyElement", [moduleName]);
-      self.controllerProvider = self.injector.get("$controller");
-      self.rootScope = self.injector.get("$rootScope");
-      self.compileService = self.injector.get("$compile");
-    };
+    self.injector = injector;
+    self.controllerProvider = self.injector.get("$controller");
+    self.rootScope = self.injector.get("$rootScope");
+    self.compileService = self.injector.get("$compile");
 
     this.newScope = function () {
       return self.rootScope.$new();
     };
 
-    this.controller = function (controllerName, dependencies) {
-      return self.controllerProvider(controllerName, dependencies);
+    this.createElement = function (viewHTML) {
+      var wrappingElement = angular.element("<div></div>");
+      wrappingElement.append(viewHTML);
+      return wrappingElement;
     };
 
-    this.view = function (viewUrl, controller, scope, preRenderBlock) {
+    this.removeElementsBelongingToDifferentScope = function (element) {
+      element.find("[modal]").removeAttr("modal");
+      element.find("[options]").removeAttr("options");
+      element.find("[ng-controller]").remove();
+
+      return element;
+    };
+
+    function requireQ(modules) {
       var deferred = Q.defer();
-      var childScope = self.rootScope;
-      require(["text!" + viewUrl], function (viewHTML) {
-        var wrappingElement = angular.element("<div></div>");
-        wrappingElement.append(viewHTML);
-        wrappingElement.data("$ngControllerController", controller);
-        if (preRenderBlock) preRenderBlock(self.injector);
-        var compiledTemplate = self.compileService(wrappingElement)(scope);
+      require(modules, function () {
+        deferred.resolve(arguments);
+      });
+      return deferred.promise;
+    }
+
+    this.numPartials = function num(element) {
+      var includes = element.find("[ng-include]");
+      if (includes.length === 0) {
+        return Q.fcall(function () {
+          return 1;
+        });
+      }
+
+      var promises = _.map(includes, function (include) {
+        var includeSource = angular.element(include).attr("src").replace("'", "").replace("'", "");
+        var includePromise = requireQ(["text!" + includeSource]);
+        return includePromise.spread(function (sourceText) {
+          var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
+          return num(child);
+        });
+      });
+      return Q.all(promises).then(function (counts) {
+        return 1 + _.reduce(counts, function (sum, count) {
+          return sum + count;
+        }, 0);
+      });
+    };
+
+    this.compileTemplate = function (viewHTML, scope, preRenderBlock) {
+      var wrappingElement = self.removeElementsBelongingToDifferentScope(self.createElement(viewHTML));
+      if (preRenderBlock) {
+        preRenderBlock(self.injector, scope);
+      }
+      self.allPartialsLoadedDeferred = Q.defer();
+      var c = self.numPartials(wrappingElement);
+      return c.then(function (numberOfPartials) {
+        self.numberOfPartials = numberOfPartials - 1;
+        if (self.options.dontWait || !self.numberOfPartials || self.numberOfPartials === 0) {
+          self.allPartialsLoadedDeferred.resolve();
+        }
+        var counter = 0;
+        scope.$on("$includeContentLoaded", function () {
+          counter++;
+          if (counter === self.numberOfPartials) {
+            self.allPartialsLoadedDeferred.resolve();
+          }
+        });
+      }).then(function() {
+          var compiledTemplate = self.compileService(wrappingElement)(scope);
+          applySafely(scope);
+          return compiledTemplate;
+        });
+    };
+
+    var applySafely = function (scope) {
+      if (!scope.$$phase) {
         scope.$apply();
-        deferred.resolve(compiledTemplate);
+      }
+    };
+
+    this.view = function (viewUrl, scope, preRenderBlock) {
+      var deferred = Q.defer();
+      require(["text!" + viewUrl], function (viewHTML) {
+        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
+          deferred.resolve(compiledTemplate);
+        });
       });
       return deferred.promise;
     };
 
-    this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock) {
+    this.controller = function (controllerName, dependencies) {
+      var deferred = Q.defer();
+      var controller = self.controllerProvider(controllerName, dependencies);
+      controller.loaded.then(function () {
+        deferred.resolve(controller);
+      });
+      return deferred.promise;
+    };
+
+    this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock, options) {
+      self.options = options || {dontWait: false};
       dependencies = dependencies ? dependencies : {};
       var scope = self.newScope();
       dependencies.$scope = scope;
+      var controller = this.controller(controllerName, dependencies);
+      var template = this.view(viewUrl, scope, preRenderBlock);
+      return Q.spread([controller, template], function (controller, template) {
 
-      var controller = self.controller(controllerName, dependencies);
-      return this.view(viewUrl, controller, scope, preRenderBlock).then(function (compiledTemplate) {
-        return { controller: controller, view: compiledTemplate, scope: scope };
+        return self.allPartialsLoadedDeferred.promise.then(function () {
+          return { controller: controller, view: template, scope: scope };
+        });
       });
     };
   };
@@ -63,12 +142,10 @@ define(["underscore", "angular"], function (_, angular) {
       o[fn] = function () {
         return originalFn.apply(o, arguments).then(function (result) {
           duckDom.apply();
-          o[fn] = originalFn;
           deferred.resolve();
           return result;
-        }, function(errors) {
+        }, function (errors) {
           duckDom.apply();
-          o[fn] = originalFn;
           deferred.reject(errors);
         });
       };
@@ -92,8 +169,8 @@ define(["underscore", "angular"], function (_, angular) {
 
   var DuckDOM = function DuckDOM(view, scope) {
     var self = this;
-    var applySafely = function() {
-      if(!scope.$$phase) {
+    var applySafely = function () {
+      if (!scope.$$phase) {
         scope.$apply();
       }
     };
@@ -101,10 +178,11 @@ define(["underscore", "angular"], function (_, angular) {
       var elements = angular.element(selector, view);
 
       _.each(elements, function (element) {
-        if (element.nodeName === "INPUT" && element.type === "text") {
+        if (element.nodeName === "INPUT" && (element.type === "text" || element.type === "password")) {
+          elements.focus();
           elements.val(value).trigger("input");
         }
-        else if (element.nodeName === "INPUT" && element.type === "button") {
+        else if (element.nodeName === "INPUT" && (element.type === "button" || element.type === "submit")) {
           elements.submit().trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
@@ -116,14 +194,17 @@ define(["underscore", "angular"], function (_, angular) {
           elements.trigger("change");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value != null) {
-          while(elements.prop("checked") != value) {
+          while (elements.prop("checked") != value) {
             elements.click().trigger("click");
             elements.prop("checked", !elements.prop("checked"));
           }
         }
         else if (element.nodeName === "SELECT") {
-          angular.element(elements[0].options[value]).attr("selected", true);
+          elements.prop("selectedIndex", value);
           elements.trigger("change");
+        }
+        else if (element.nodeName === "A" || element.nodeName === "BUTTON") {
+          elements.click();
         }
       });
       applySafely();
