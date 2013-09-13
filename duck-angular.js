@@ -1,4 +1,9 @@
 define(["underscore", "angular", "Q"], function (_, angular, Q) {
+  var bootstrap = function(moduleName, app) {
+    var injector = angular.bootstrap("#summyElement", moduleName);
+    return new Container(injector, app);
+  };
+
   var Container = function Container(injector, app) {
     var self = this;
     self.injector = injector;
@@ -219,5 +224,5 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       return angular.element(selector, view);
     };
   };
-  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
+  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM, bootstrap: bootstrap };
 });

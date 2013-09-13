@@ -13,8 +13,7 @@ Use it in your tests, like so:
     define(["app", "duckAngular"], function(Duck) { // app.js defines controllers, services, etc.
       describe("Some Page", function() {
         it("can show error message for non-numeric input", function() {
-          var container = new Duck.Container();
-          container.bootstrap("YourApp"); // Name of your module
+          var container = Duck.bootstrap("YourApp"); // Name of your module
           var dependencies = {service: {}}; // Partially or fully mocked service
           var preRenderBlock = function(scope) {}; // Anything you want to do before template is bound to scope, like setting up scope watches, etc. 
           container.mvc("SomeController", "templates/some-template.html", dependencies, preRenderBlock, {dontWait: false}).then(function(mvc) {
