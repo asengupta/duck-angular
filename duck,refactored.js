@@ -1,13 +1,4 @@
-define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, rq) {
-  this.init = function(app, ctor) {
-    if (!ctor.moduleName && !ctor.injector) {
-      throw new Error("Either <moduleName> or <injector> should be specified.");
-    }
-    if (ctor.moduleName) return bootstrap(ctor.moduleName, app);
-    return new Container(ctor.injector, app);    
-
-  };
-
+define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, requireQ) {
   var bootstrap = function(moduleName, app) {
     var injector = angular.bootstrap("#summyElement", moduleName);
     return new Container(injector, app);
@@ -15,20 +6,30 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
 
   var Container = function Container(injector, app) {
     var self = this;
-    var controllerProvider = injector.get("$controller");
-    var compileService = injector.get("$compile");
+    self.injector = injector;
+    self.controllerProvider = self.injector.get("$controller");
+    self.rootScope = self.injector.get("$rootScope");
+    self.compileService = self.injector.get("$compile");
 
-    var newScope = function () {
-      return rootScope.$new();
+    this.newScope = function () {
+      return self.rootScope.$new();
     };
 
-    var asDOM = function (viewHTML) {
+    this.createElement = function (viewHTML) {
       var wrappingElement = angular.element("<div></div>");
       wrappingElement.append(viewHTML);
       return wrappingElement;
     };
 
-    var numberOfPartials = function num(element) {
+    this.removeElementsBelongingToDifferentScope = function (element) {
+      element.find("[modal]").removeAttr("modal");
+      element.find("[options]").removeAttr("options");
+      element.find("[ng-controller]").remove();
+
+      return element;
+    };
+
+    this.numPartials = function num(element) {
       var includes = element.find("[ng-include]");
       if (includes.length === 0) {
         return Q.fcall(function () {
@@ -38,13 +39,12 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
 
       var promises = _.map(includes, function (include) {
         var includeSource = angular.element(include).attr("src").replace("'", "").replace("'", "");
-        var includePromise = rq(["text!" + includeSource]);
+        var includePromise = requireQ(["text!" + includeSource]);
         return includePromise.spread(function (sourceText) {
-          var child = asDOM(sourceText));
+          var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
           return num(child);
         });
       });
-
       return Q.all(promises).then(function (counts) {
         return 1 + _.reduce(counts, function (sum, count) {
           return sum + count;
@@ -52,30 +52,27 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
       });
     };
 
-    var resolvePartials = function(partialCount, scope) {
-      if (self.options.dontWait || !partialCount || partialCount === 0) {
+    this.compileTemplate = function (viewHTML, scope, preRenderBlock) {
+      var wrappingElement = self.removeElementsBelongingToDifferentScope(self.createElement(viewHTML));
+      if (preRenderBlock) {
+        preRenderBlock(self.injector, scope);
+      }
+      self.allPartialsLoadedDeferred = Q.defer();
+      var c = self.numPartials(wrappingElement);
+      return c.then(function (numberOfPartials) {
+        self.numberOfPartials = numberOfPartials - 1;
+        if (self.options.dontWait || !self.numberOfPartials || self.numberOfPartials === 0) {
           self.allPartialsLoadedDeferred.resolve();
         }
         var counter = 0;
         scope.$on("$includeContentLoaded", function () {
           counter++;
-          if (counter === partialCount) {
+          if (counter === self.numberOfPartials) {
             self.allPartialsLoadedDeferred.resolve();
           }
         });
-    };
-
-    var compileTemplate = function (viewHTML, scope, preRenderBlock) {
-      var wrappingElement = asDOM(viewHTML));
-      if (preRenderBlock) {
-        preRenderBlock(injector, scope);
-      }
-      self.allPartialsLoadedDeferred = Q.defer();
-      var c = numberOfPartials(wrappingElement);
-      return c.then(function (partialCount) {
-        return resolvePartials(partialCount - 1, scope);
       }).then(function() {
-          var compiledTemplate = compileService(wrappingElement)(scope);
+          var compiledTemplate = self.compileService(wrappingElement)(scope);
           applySafely(scope);
           return compiledTemplate;
         });
@@ -88,20 +85,28 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
     };
 
     this.view = function (viewUrl, scope, preRenderBlock) {
-      return rq(["text!" + viewUrl]).spread(function(viewHTML) {
-        return compileTemplate(viewHTML, scope, preRenderBlock);
+      var deferred = Q.defer();
+      require(["text!" + viewUrl], function (viewHTML) {
+        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
+          deferred.resolve(compiledTemplate);
+        });
       });
+      return deferred.promise;
     };
 
     this.controller = function (controllerName, dependencies) {
-      var controller = controllerProvider(controllerName, dependencies);
-      return Q.fcall(function() {return controller;});
+      var deferred = Q.defer();
+      var controller = self.controllerProvider(controllerName, dependencies);
+      controller.loaded.then(function () {
+        deferred.resolve(controller);
+      });
+      return deferred.promise;
     };
 
     this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock, options) {
       self.options = options || {dontWait: false};
       dependencies = dependencies ? dependencies : {};
-      var scope = newScope();
+      var scope = self.newScope();
       dependencies.$scope = scope;
       var controller = this.controller(controllerName, dependencies);
       var template = this.view(viewUrl, scope, preRenderBlock);
