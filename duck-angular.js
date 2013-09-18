@@ -1,4 +1,4 @@
-define(["underscore", "angular", "Q"], function (_, angular, Q) {
+define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, requireQ) {
   var bootstrap = function(moduleName, app) {
     var injector = angular.bootstrap("#summyElement", moduleName);
     return new Container(injector, app);
@@ -7,50 +7,39 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
   var Container = function Container(injector, app) {
     var self = this;
     self.injector = injector;
-    self.controllerProvider = self.injector.get("$controller");
-    self.rootScope = self.injector.get("$rootScope");
-    self.compileService = self.injector.get("$compile");
+    var controllerProvider = self.injector.get("$controller");
+    var rootScope = self.injector.get("$rootScope");
+    var compileService = self.injector.get("$compile");
 
-    this.newScope = function () {
-      return self.rootScope.$new();
+    var newScope = function () {
+      return rootScope.$new();
     };
 
-    this.createElement = function (viewHTML) {
+    var createElement = function (viewHTML) {
       var wrappingElement = angular.element("<div></div>");
       wrappingElement.append(viewHTML);
       return wrappingElement;
     };
 
-    this.removeElementsBelongingToDifferentScope = function (element) {
+    var sanitised = function (element) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
-      element.find("[ng-controller]").remove();
 
       return element;
     };
 
-    function requireQ(modules) {
-      var deferred = Q.defer();
-      require(modules, function () {
-        deferred.resolve(arguments);
-      });
-      return deferred.promise;
-    }
-
-    this.numPartials = function num(element) {
+    var partialCount = function partialCount(element) {
       var includes = element.find("[ng-include]");
       if (includes.length === 0) {
-        return Q.fcall(function () {
-          return 1;
-        });
+        return Q(1);
       }
 
       var promises = _.map(includes, function (include) {
         var includeSource = angular.element(include).attr("src").replace("'", "").replace("'", "");
         var includePromise = requireQ(["text!" + includeSource]);
         return includePromise.spread(function (sourceText) {
-          var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
-          return num(child);
+          var child = sanitised(createElement(sourceText));
+          return partialCount(child);
         });
       });
       return Q.all(promises).then(function (counts) {
@@ -60,13 +49,13 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       });
     };
 
-    this.compileTemplate = function (viewHTML, scope, preRenderBlock) {
-      var wrappingElement = self.removeElementsBelongingToDifferentScope(self.createElement(viewHTML));
+    var compileTemplate = function (viewHTML, scope, preRenderBlock) {
+      var wrappingElement = sanitised(createElement(viewHTML));
       if (preRenderBlock) {
         preRenderBlock(self.injector, scope);
       }
       self.allPartialsLoadedDeferred = Q.defer();
-      var c = self.numPartials(wrappingElement);
+      var c = partialCount(wrappingElement);
       return c.then(function (numberOfPartials) {
         self.numberOfPartials = numberOfPartials - 1;
         if (self.options.dontWait || !self.numberOfPartials || self.numberOfPartials === 0) {
@@ -80,7 +69,7 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
           }
         });
       }).then(function() {
-          var compiledTemplate = self.compileService(wrappingElement)(scope);
+          var compiledTemplate = compileService(wrappingElement)(scope);
           applySafely(scope);
           return compiledTemplate;
         });
@@ -93,28 +82,22 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
     };
 
     this.view = function (viewUrl, scope, preRenderBlock) {
-      var deferred = Q.defer();
-      require(["text!" + viewUrl], function (viewHTML) {
-        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
-          deferred.resolve(compiledTemplate);
-        });
+      return requireQ(["text!" + viewUrl]).spread(function (viewHTML) {
+        return compileTemplate(viewHTML, scope, preRenderBlock);
       });
-      return deferred.promise;
     };
 
     this.controller = function (controllerName, dependencies) {
-      var deferred = Q.defer();
-      var controller = self.controllerProvider(controllerName, dependencies);
-      controller.loaded.then(function () {
-        deferred.resolve(controller);
+      var controller = controllerProvider(controllerName, dependencies);
+      return controller.loaded.then(function () {
+        return controller;
       });
-      return deferred.promise;
     };
 
     this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock, options) {
       self.options = options || {dontWait: false};
       dependencies = dependencies ? dependencies : {};
-      var scope = self.newScope();
+      var scope = newScope();
       dependencies.$scope = scope;
       var controller = this.controller(controllerName, dependencies);
       var template = this.view(viewUrl, scope, preRenderBlock);
