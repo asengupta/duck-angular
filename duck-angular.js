@@ -1,45 +1,52 @@
-define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, requireQ) {
-  var bootstrap = function(moduleName, app) {
-    var injector = angular.bootstrap("#summyElement", moduleName);
-    return new Container(injector, app);
-  };
-
+define(["underscore", "angular", "Q"], function (_, angular, Q) {
   var Container = function Container(injector, app) {
     var self = this;
     self.injector = injector;
-    var controllerProvider = self.injector.get("$controller");
-    var rootScope = self.injector.get("$rootScope");
-    var compileService = self.injector.get("$compile");
+    self.controllerProvider = self.injector.get("$controller");
+    self.rootScope = self.injector.get("$rootScope");
+    self.compileService = self.injector.get("$compile");
 
-    var newScope = function () {
-      return rootScope.$new();
+    this.newScope = function () {
+      return self.rootScope.$new();
     };
 
-    var createElement = function (viewHTML) {
+    this.createElement = function (viewHTML) {
       var wrappingElement = angular.element("<div></div>");
       wrappingElement.append(viewHTML);
       return wrappingElement;
     };
 
-    var sanitised = function (element) {
+    this.removeElementsBelongingToDifferentScope = function (element) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
+      element.find("[ng-controller]").remove();
 
       return element;
     };
 
-    var partialCount = function partialCount(element) {
+    // Adapted from https://github.com/asengupta/requirejs-q
+    function requireQ(modules) {
+      var deferred = Q.defer();
+      require(modules, function () {
+        deferred.resolve(arguments);
+      });
+      return deferred.promise;
+    }
+
+    this.numPartials = function num(element) {
       var includes = element.find("[ng-include]");
       if (includes.length === 0) {
-        return Q(1);
+        return Q.fcall(function () {
+          return 1;
+        });
       }
 
       var promises = _.map(includes, function (include) {
         var includeSource = angular.element(include).attr("src").replace("'", "").replace("'", "");
         var includePromise = requireQ(["text!" + includeSource]);
         return includePromise.spread(function (sourceText) {
-          var child = sanitised(createElement(sourceText));
-          return partialCount(child);
+          var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
+          return num(child);
         });
       });
       return Q.all(promises).then(function (counts) {
@@ -49,13 +56,13 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
       });
     };
 
-    var compileTemplate = function (viewHTML, scope, preRenderBlock) {
-      var wrappingElement = sanitised(createElement(viewHTML));
+    this.compileTemplate = function (viewHTML, scope, preRenderBlock) {
+      var wrappingElement = self.removeElementsBelongingToDifferentScope(self.createElement(viewHTML));
       if (preRenderBlock) {
         preRenderBlock(self.injector, scope);
       }
       self.allPartialsLoadedDeferred = Q.defer();
-      var c = partialCount(wrappingElement);
+      var c = self.numPartials(wrappingElement);
       return c.then(function (numberOfPartials) {
         self.numberOfPartials = numberOfPartials - 1;
         if (self.options.dontWait || !self.numberOfPartials || self.numberOfPartials === 0) {
@@ -69,7 +76,7 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
           }
         });
       }).then(function() {
-          var compiledTemplate = compileService(wrappingElement)(scope);
+          var compiledTemplate = self.compileService(wrappingElement)(scope);
           applySafely(scope);
           return compiledTemplate;
         });
@@ -82,25 +89,34 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
     };
 
     this.view = function (viewUrl, scope, preRenderBlock) {
-      return requireQ(["text!" + viewUrl]).spread(function (viewHTML) {
-        return compileTemplate(viewHTML, scope, preRenderBlock);
+      var deferred = Q.defer();
+      require(["text!" + viewUrl], function (viewHTML) {
+        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
+          deferred.resolve(compiledTemplate);
+        });
       });
+      return deferred.promise;
     };
 
     this.controller = function (controllerName, dependencies) {
-      var controller = controllerProvider(controllerName, dependencies);
-      return controller.loaded.then(function () {
-        return controller;
+      var deferred = Q.defer();
+      var controller = self.controllerProvider(controllerName, dependencies);
+      controller.loaded.then(function () {
+        deferred.resolve(controller);
       });
+      return deferred.promise;
     };
 
-    this.mvc = function (controllerName, viewUrl, dependencies, preRenderBlock, options) {
+    this.mvc = function (controllerName, viewUrl, dependencies, options) {
       self.options = options || {dontWait: false};
-      dependencies = dependencies ? dependencies : {};
-      var scope = newScope();
+      self.options.preBindHook = self.options.preBindHook || function() {};
+      self.options.preRenderHook = self.options.preRenderHook || function() {};
+      dependencies = dependencies || {};
+      var scope = self.newScope();
+      self.options.preBindHook(scope);
       dependencies.$scope = scope;
       var controller = this.controller(controllerName, dependencies);
-      var template = this.view(viewUrl, scope, preRenderBlock);
+      var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
 
         return self.allPartialsLoadedDeferred.promise.then(function () {
@@ -130,10 +146,12 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
       o[fn] = function () {
         return originalFn.apply(o, arguments).then(function (result) {
           duckDom.apply();
+          o[fn] = originalFn;
           deferred.resolve();
           return result;
         }, function (errors) {
           duckDom.apply();
+          o[fn] = originalFn;
           deferred.reject(errors);
         });
       };
@@ -162,6 +180,16 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
         scope.$apply();
       }
     };
+
+    this.applyAndDo = function(command){
+      var deferred = Q.defer();
+      scope.$apply(function(){
+        command();
+        deferred.resolve();
+      });
+      return deferred.promise;
+    };
+
     this.interactWith = function (selector, value) {
       var elements = angular.element(selector, view);
 
@@ -178,6 +206,7 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
           elements.prop("checked", !elements.prop("checked"));
         }
         else if (element.nodeName === "INPUT" && element.type === "radio") {
+          elements.click().trigger("click");
           elements.prop("checked", !elements.prop("checked"));
           elements.trigger("change");
         }
@@ -207,5 +236,5 @@ define(["underscore", "angular", "Q", "requirejs-q"], function (_, angular, Q, r
       return angular.element(selector, view);
     };
   };
-  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM, bootstrap: bootstrap };
+  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
 });
