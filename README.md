@@ -1,6 +1,8 @@
 duck-angular
 ============
 
+Guides to use this are at http://avishek.net/blog/?p=1202 and http://avishek.net/blog/?p=1188.
+
 A container for bootstrapping and testing AngularJS views and controllers in memory: no browser or external process needed.
 
 duck-angular is available as a Bower package. Install it using bower 'install duck-angular'.
