@@ -22,30 +22,19 @@ Include it using RequireJS' define(). Your controller/service/object initialisat
 
 Use it in your tests, like so:
 
+Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.com/asengupta/AngularJS-RequireJS-Seed)
+
     // Using Mocha-as-Promised in this example
-    define(["app", "duckAngular"], function(Duck) { // app.js defines controllers, services, etc.
-      describe("Some Page", function() {
-        it("can show error message for non-numeric input", function() {
-          var container = Duck.bootstrap("YourApp"); // Name of your module
-          var dependencies = {service: {}}; // Partially or fully mocked service
-          var preRenderBlock = function(scope) {}; // Anything you want to do before template is bound to scope, like setting up scope watches, etc. 
-          container.mvc("SomeController", "templates/some-template.html", dependencies, preRenderBlock, {dontWait: false}).then(function(mvc) {
-            console.log("Loaded all the good stuff");
-            var controller = mvc.controller;
-            var view = mvc.view;
-            var scope = mvc.scope;
-            var dom = new Duck.DOM(view, scope);
-            var interaction = new Duck.UIInteraction(dom);
-            expect(dom.element("#errorMsg").css("display")).to.eql("none");
-            var theBox = view.find("#someTextBox");
-            dom.interactWith("#someTextBox", "Some Wrong Data");
-            // For when you need to wait on some function anywhere to complete before making certain
-            // assertions. The example below is for a function that returns a Q promise. For sync functions,
-            // use waitForSync() instead of waitFor()
-            return interaction.with("#submit_details").waitFor(scope, "submitDetails").then(function() {
-                expect(dom.element("#errorMsg").css("display")).to.eql("");
-            });
-          });
+    it("can reflect data that is refreshed asynchronously", function () {
+      return mother.createMvc("route2Controller", "../templates/route2.html", {}).then(function (mvc) {
+        var dom = new DuckDOM(mvc.view, mvc.scope);
+        var interaction = new UIInteraction(dom);
+        expect(dom.element("#data")[0].innerText).to.eql("Some Data");
+        dom.interactWith("#changeLink");
+        expect(dom.element("#data")[0].innerText).to.eql("Some New Data");
+        return interaction.with("#refreshLink").waitFor(mvc.scope, "refreshData").then(function() {
+          expect(dom.element("#data")[0].innerText).to.eql("Some Data");
         });
       });
     });
+
