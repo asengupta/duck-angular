@@ -21,7 +21,6 @@ define(["duckAngular", "underscore"], function (Duck, _) {
     return initApp().spread(function (injector, app) {
       var container = new Container(injector, app);
       var resourceBundleFactory = container.injector.get("ngI18nResourceBundle");
-      disableSessionSync(container);
       return resourceBundleFactory.get("en").then(function (resourceBundle) {
         return container.mvc(controllerName, templateUrl, dependencies, _.extend(options || {}, {preBindHook: function (scope) {
           scope.resourceBundle = resourceBundle.data;
@@ -34,14 +33,20 @@ define(["duckAngular", "underscore"], function (Duck, _) {
     });
   };
 
-  mother.compileDirective = function (rawElement) {
+  mother.compileDirective = function (rawElement, injectedScope) {
     return initApp().spread(function (injector, app) {
       var container = new Container(injector, app);
       var compile = container.injector.get("$compile");
       var scope = container.injector.get("$rootScope");
 
+      if (injectedScope !== null) {
+        for (var k in injectedScope) {
+          scope[k] = injectedScope[k];
+        }
+      }
       var element = compile(rawElement)(scope);
-      return [scope, element]
+      scope.$apply();
+      return [scope, element];
     });
   };
 
