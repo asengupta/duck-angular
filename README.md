@@ -7,6 +7,7 @@ Guides to use this are at:
 * [Part Two](http://avishek.net/blog/?p=1188)
 * [Part Three](http://avishek.net/blog/?p=1225)
 * [Part Four](http://avishek.net/blog/?p=1239)
+* [Part Five: Testing Directives](http://avishek.net/blog/?p=1489)
 * [A Quick Recap](http://avishek.net/blog/?p=1472)
 
 An example AngularJS app using Duck-Angular is at https://github.com/asengupta/AngularJS-RequireJS-Seed in two combinations:
