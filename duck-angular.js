@@ -192,7 +192,7 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
 
     this.interactWith = function (selector, value) {
       var elements = angular.element(selector, view);
-
+      if (elements.length === 0) throw new Error("No element with matching selector found.");
       _.each(elements, function (element) {
         if (element.nodeName === "INPUT" && (element.type === "text" || element.type === "password")) {
           elements.focus();
