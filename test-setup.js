@@ -1,5 +1,5 @@
 define(["Q"], function(Q) {
-  var initApp = function (deferSessionLoad, ajax, appDependencies) {
+  var initApp = function (appDependencies) {
     appDependencies = appDependencies || {};
     return setupApp().spread(function (app, angularApp) {
       _.each(_.keys(appDependencies), function (appDependencyKey) {
@@ -11,7 +11,7 @@ define(["Q"], function(Q) {
           });
         });
       });
-      return bootstrapApp(app, angularApp, deferSessionLoad, ajax);
+      return bootstrapApp(app, angularApp);
     });
   };
 
