@@ -2,8 +2,8 @@ define(["duckAngular", "underscore"], function (Duck, _) {
   var mother = {};
   var Container = Duck.Container;
 
-  mother.createController = function createController(controllerName, dependencies) {
-    return initApp().spread(function (injector, app) {
+  mother.createController = function createController(controllerName, dependencies, appDependencies) {
+    return initApp(appDependencies).spread(function (injector, app) {
       mother.injector = injector;
       var container = new Container(injector, app);
       var resourceBundleFactory = container.injector.get("ngI18nResourceBundle");
@@ -17,8 +17,8 @@ define(["duckAngular", "underscore"], function (Duck, _) {
     });
   };
 
-  mother.createMvc = function createMvc(controllerName, templateUrl, dependencies, options) {
-    return initApp().spread(function (injector, app) {
+  mother.createMvc = function createMvc(controllerName, templateUrl, dependencies, options, appDependencies) {
+    return initApp(appDependencies).spread(function (injector, app) {
       var container = new Container(injector, app);
       var resourceBundleFactory = container.injector.get("ngI18nResourceBundle");
       return resourceBundleFactory.get("en").then(function (resourceBundle) {
@@ -26,6 +26,7 @@ define(["duckAngular", "underscore"], function (Duck, _) {
           scope.resourceBundle = resourceBundle.data;
         }})).then(function (mvc) {
               mvc.injector = injector;
+              angular.element("#test-content").html(mvc.view);
               mvc.scope.$apply();
               return mvc;
             });
