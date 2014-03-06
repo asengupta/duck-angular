@@ -34,8 +34,8 @@ define(["duckAngular", "underscore"], function (Duck, _) {
     });
   };
 
-  mother.compileDirective = function (rawElement, injectedScope) {
-    return initApp().spread(function (injector, app) {
+  mother.compileDirective = function (rawElement, injectedScope, appDependencies) {
+    return initApp(appDependencies).spread(function (injector, app) {
       var container = new Container(injector, app);
       var compile = container.injector.get("$compile");
       var scope = container.injector.get("$rootScope");
