@@ -272,6 +272,14 @@ var duckCtor = function (_, angular, Q) {
 
       isHidden : function() {
         return this.css("display") === "none" || this.parent().is(":hidden");
+      },
+      
+      isFocused: function() {
+        var deferred = Q.defer();
+        this.on("focus", function() {
+          deferred.resolve();
+        });
+        return deferred.promise;
       }
     }
 
