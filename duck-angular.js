@@ -1,6 +1,7 @@
 define(["underscore", "angular", "Q"], function (_, angular, Q) {
   var Container = function Container(injector, app) {
     var self = this;
+    self.options = {};
     self.injector = injector;
     self.controllerProvider = self.injector.get("$controller");
     self.rootScope = self.injector.get("$rootScope");
@@ -107,6 +108,15 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       return deferred.promise;
     };
 
+    this.directiveTemplate = function (element) {
+      var deferred = Q.defer();
+      var scope = self.newScope();
+      self.compileTemplate(element, scope).then(function(template) {
+        deferred.resolve([scope, template]);
+      });
+      return deferred.promise;
+    };
+
     this.mvc = function (controllerName, viewUrl, dependencies, options) {
       self.options = options || {dontWait: false};
       self.options.preBindHook = self.options.preBindHook || function() {};
@@ -114,7 +124,7 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       dependencies = dependencies || {};
       var scope = self.newScope();
       self.options.preBindHook(scope);
-      dependencies.$scope = scope;
+      dependencies.$scope = dependencies.injectedScope || scope;
       var controller = this.controller(controllerName, dependencies);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
@@ -144,16 +154,24 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       var deferred = Q.defer();
       var originalFn = o[fn];
       o[fn] = function () {
-        return originalFn.apply(o, arguments).then(function (result) {
+        var originalPromise = originalFn.apply(o, arguments);
+        function resolveOriginalFunction() {
           duckDom.apply();
           o[fn] = originalFn;
           deferred.resolve();
-          return result;
-        }, function (errors) {
-          duckDom.apply();
-          o[fn] = originalFn;
-          deferred.reject(errors);
-        });
+        }
+        if (originalPromise && originalPromise.then) {
+          originalPromise.then(function (result) {
+            resolveOriginalFunction();
+            return result;
+          }, function (errors) {
+            duckDom.apply();
+            o[fn] = originalFn;
+            deferred.reject(errors);
+          });
+        }else{
+          resolveOriginalFunction();
+        }
       };
       self.run();
       return deferred.promise;
@@ -192,11 +210,15 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
 
     this.interactWith = function (selector, value) {
       var elements = angular.element(selector, view);
-      if (elements.length === 0) throw new Error("No element with matching selector found.");
+
       _.each(elements, function (element) {
-        if (element.nodeName === "INPUT" && (element.type === "text" || element.type === "password")) {
+        if (element.nodeName === "TEXTAREA" || (element.nodeName === "INPUT" && (element.type === "text" || element.type === "password" || element.type === "number" || element.type === "tel" || element.type === "email" || element.type === "date" ))) {
           elements.focus();
           elements.val(value).trigger("input");
+        }
+        else if (element.nodeName === "FORM") {
+          var inputElement = angular.element("input[type='submit']");
+          inputElement.submit();
         }
         else if (element.nodeName === "INPUT" && (element.type === "button" || element.type === "submit")) {
           elements.submit().trigger("click");
@@ -206,9 +228,7 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
           elements.prop("checked", !elements.prop("checked"));
         }
         else if (element.nodeName === "INPUT" && element.type === "radio") {
-          elements.click().trigger("click");
-          elements.prop("checked", !elements.prop("checked"));
-          elements.trigger("change");
+          elements.attr("checked", elements.attr("checked") ? null: "checked").click();
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value != null) {
           while (elements.prop("checked") != value) {
@@ -232,8 +252,19 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       applySafely();
     };
 
+    var duckElement = {
+      isDisplayed : function() {
+        return this.css("display") !== "none" || this.parent().is(":visible");
+      },
+
+      isHidden : function() {
+        return this.css("display") === "none" || this.parent().is(":hidden");
+      }
+    }
+
     this.element = function (selector) {
-      return angular.element(selector, view);
+      var element = angular.element(selector, view);
+      return  _.extend(element, duckElement);
     };
   };
   return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
