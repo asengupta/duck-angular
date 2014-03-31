@@ -1,5 +1,12 @@
-define(["underscore", "angular", "Q"], function (_, angular, Q) {
-  var Container = function Container(injector, app) {
+var duckCtor = function (_, angular, Q) {
+  var Container = function Container(injector, app, pathOptions) {
+    if (pathOptions) {
+      require.config({
+        baseUrl: pathOptions.baseUrl,
+        paths: { text: pathOptions.textPluginPath}
+      });
+    }
+
     var self = this;
     self.options = {};
     self.injector = injector;
@@ -92,9 +99,15 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
       require(["text!" + viewUrl], function (viewHTML) {
+        // HACK to make sure that ng-controller directives don't cause template to be eaten up
+        viewHTML = viewHTML.replace("ng-controller", "no-controller");
+        viewHTML = viewHTML.replace("ng-app", "no-app");
         self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
           deferred.resolve(compiledTemplate);
         });
+      }, function(err) {
+        console.log("Bad things happened");
+        console.log(err);
       });
       return deferred.promise;
     };
@@ -128,7 +141,6 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
       var controller = this.controller(controllerName, dependencies);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
-
         return self.allPartialsLoadedDeferred.promise.then(function () {
           return { controller: controller, view: template, scope: scope };
         });
@@ -268,4 +280,13 @@ define(["underscore", "angular", "Q"], function (_, angular, Q) {
     };
   };
   return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
-});
+};
+
+if (typeof define !== "undefined") {
+  console.log("RequireJS is present, defining AMD module");
+  define(["underscore", "angular", "Q"], duckCtor);
+}
+else {
+  console.log("RequireJS is NOT present, defining globally");
+  window.duckCtor = duckCtor; 
+}
