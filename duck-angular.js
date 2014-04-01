@@ -112,9 +112,10 @@ var duckCtor = function (_, angular, Q) {
       return deferred.promise;
     };
 
-    this.controller = function (controllerName, dependencies) {
-      var deferred = Q.defer();
+    this.controller = function (controllerName, dependencies, isAsync) {
       var controller = self.controllerProvider(controllerName, dependencies);
+      if (!isAsync) return Q({});
+      var deferred = Q.defer();
       controller.loaded.then(function () {
         deferred.resolve(controller);
       });
@@ -131,14 +132,14 @@ var duckCtor = function (_, angular, Q) {
     };
 
     this.mvc = function (controllerName, viewUrl, dependencies, options) {
-      self.options = options || {dontWait: false};
+      self.options = options || {dontWait: false, async: false};
       self.options.preBindHook = self.options.preBindHook || function() {};
       self.options.preRenderHook = self.options.preRenderHook || function() {};
       dependencies = dependencies || {};
       var scope = self.newScope();
       self.options.preBindHook(scope);
       dependencies.$scope = dependencies.injectedScope || scope;
-      var controller = this.controller(controllerName, dependencies);
+      var controller = this.controller(controllerName, dependencies, self.options.async || false);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
         return self.allPartialsLoadedDeferred.promise.then(function () {
