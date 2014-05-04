@@ -15,11 +15,14 @@ An example AngularJS app using Duck-Angular is at https://github.com/asengupta/A
 * [Mocha + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/master)
 * [Jasmine + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/karma-jasmine)
 
-A container for bootstrapping and testing AngularJS views and controllers in memory: no browser or external process needed.
+An example which does not use RequireJS as part of the app is available at: [Angular-Toy](https://github.com/kylehodgson/angular-toy).
+
+duck-angular is a container for bootstrapping and testing AngularJS views and controllers in memory: no browser or external process needed.
 
 duck-angular is available as a Bower package. Install it using 'bower install duck-angular'.
 
 Include it using RequireJS' define(). Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
+If you're not using RequireJS in your app, see the example at: [Angular-Toy](https://github.com/kylehodgson/angular-toy). 
 
 Use it in your tests, like so:
 
