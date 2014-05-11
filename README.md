@@ -97,7 +97,7 @@ This method sets up only a controller without a view, with dependencies that you
     // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
 
-##DuckDOM/DuckUIInteraction API
+##Interaction API
 
 The DuckDOM/DuckUIInteraction API lets you interact with elements in your constructed view. This only makes sense when you've set up your context using the Container.mvc() method.
 
