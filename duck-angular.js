@@ -112,11 +112,12 @@ var duckCtor = function (_, angular, Q) {
       return deferred.promise;
     };
 
-    this.controller = function (controllerName, dependencies, isAsync) {
+    this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
       var controller = self.controllerProvider(controllerName, dependencies);
       if (!isAsync) return Q({});
       var deferred = Q.defer();
-      controller.loaded.then(function () {
+      controllerLoadedPromise = controllerLoadedPromise ? controllerLoadedPromise(controller) : controller.loaded;
+      controllerLoadedPromise.then(function () {
         deferred.resolve(controller);
       });
       return deferred.promise;
@@ -292,7 +293,7 @@ var duckCtor = function (_, angular, Q) {
           deferred.resolve();
         });
         return deferred.promise;
-       }
+      }
     }
 
     this.element = function (selector) {
