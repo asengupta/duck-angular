@@ -52,8 +52,10 @@ Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.
     });
 
 
+If using RequireJS, including duck-angular as a dependency will expose duckCtor as a parameter you use in your tests.
+If including duck-angular using script tags, window.duckCtor will be available to you.
 
-On including Duck using script tags, window.duckCtor will be available to you. Initialise the application container, like so:
+Initialise the application container, like so:
 
     var duckFactory = duckCtor(_, angular, Q, $);
     var builder = duckFactory.ContainerBuilder;
