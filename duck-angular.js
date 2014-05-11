@@ -1,4 +1,4 @@
-var duckCtor = function (_, angular, Q) {
+var duckCtor = function (_, angular, Q, $) {
   var Container = function Container(injector, app, pathOptions) {
     if (pathOptions) {
       require.config({
@@ -150,11 +150,18 @@ var duckCtor = function (_, angular, Q) {
     };
   };
   var ContainerBuilder = {
-    build: function(module, pathOptions) {
-      angular.bootstrap($("#null"), [module]);
+    build: function(moduleName, app, pathOptions) {
+      angular.bootstrap($("#null"), [moduleName]);
 
-      var injector = angular.injector(["ngMock", "ng", module]);
-      return new Container(injector, null, pathOptions);
+      var injector = angular.injector(["ng", moduleName]);
+      app.config(function($provide) {
+        $provide.provider("$rootElement", function() {
+          this.$get = function() {
+            return $("#dummy");
+          };
+        });
+      });
+      return new Container(injector, app, pathOptions);
     }
   };
 

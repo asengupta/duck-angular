@@ -43,6 +43,131 @@ Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.
     });
 
 
+Documentation
+---------------
+If you intend to set up Duck manually in an environment where RequireJS is not available, you'll need to make sure that the following libraries are available to Duck.
+
+* q.js
+* require.js
+* text.js
+* underscore.js
+
+On including Duck using script tags, window.duckCtor will be available to you. Initialise the application container, like so:
+
+    var duckFactory = duckCtor(_, angular, Q, $);
+    var builder = duckFactory.ContainerBuilder;
+    var container = builder.build("MyModuleName", myModule, { baseUrl: "[baseUrl/for/Duck/dependencies]", textPluginPath: "path/to/text.js"});
+
+Container API
+---------------
+
+mvc()
+--
+
+This method sets up a controller and a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns an object which contains the controller, the view, and the scope.
+
+    var options = { 
+      preBindHook: function(scope) {...}, // optional
+      preRenderHook: function(injector, scope) {...}, // optional
+      dontWait: false, // optional
+      async: false, // optional
+      controllerLoadedPromise: function(controller) {...} // optional, required if async is true
+    };
+
+    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+      var controller = mvc.controller;
+      var view = mvc.view;
+      var scope = mvc.scope;
+      ...
+    });
+
+    // preBindHook and preRenderHook are optional.
+    // dontWait is optional, and has a default value of false. Set it to true, if you do not want to wait for nested ng-include partial resolution.
+    // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
+    // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
+
+controller()
+--
+
+This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
+
+    controller(controllerName, dependencies, isAsync, controllerLoadedPromise).then(function(controller) {
+      ...
+    });
+
+    // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
+    // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
+
+
+DuckDOM/DuckUIInteraction API
+------------
+
+The DuckDOM/DuckUIInteraction API lets you interact with elements in your constructed view. This only makes sense when you've set up your context using the Container.mvc() method.
+
+element()
+--
+
+This lets you access any element inside the view using standard jQuery selectors/semantics.
+
+    var DuckDOM = duckFactory.DOM;
+
+    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+      var controller = mvc.controller;
+      var view = mvc.view;
+      var scope = mvc.scope;
+      var dom = new DuckDOM(mvc.view, mvc.scope);
+      expect(dom.element("#someElement").isHidden()).to.eq(true);
+    });
+
+apply()
+--
+This lets you call Angular's $scope.$apply() method in a safe fashion.
+
+interactWith()
+--
+
+This lets you interact with elements whose controller behaviour is known to be synchronous. Note that $scope.$apply() is automatically invoked after each interaction, so there is no need to call it yourself.
+
+    var DuckDOM = duckFactory.DOM;
+
+    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+      var controller = mvc.controller;
+      var view = mvc.view;
+      var scope = mvc.scope;
+      var dom = new DuckDOM(mvc.view, mvc.scope);
+
+      dom.interactWith("#emailAddress", "mojo@mojo.com");
+      expect(dom.element("#emailAddress").val()).to.eq("mojo@mojo.com");
+    });
+
+The interactWith() method is 'overloaded' to understand what type of element you are interacting with, so you can simply pass the second parameter where appropriate. For example:
+
+    dom.interactWith("#someButton");
+    dom.interactWith("#someDropdown", 2);
+    dom.interactWith("#textField", "Some Text");
+    dom.interactWith("#someRadio", true);
+
+with().waitFor()
+--
+This call lets you interact with elements whose controller behaviour is known to be asynchronous. In such cases, you want to wait for the asynchronous behaviour to complete before proceeding with test assertions. This method assumes that the asynchronous logic returns a promise whose fulfilment indicates the completion of the user action.
+
+    var DuckDOM = duckFactory.DOM;
+    var UIInteraction = Duck.UIInteraction;
+
+    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+      var controller = mvc.controller;
+      var view = mvc.view;
+      var scope = mvc.scope;
+      var dom = new DuckDOM(mvc.view, mvc.scope);
+      var interaction = new UIInteraction(dom);
+        return interaction.with("#refreshLink").waitFor(mvc.scope, "refreshData").then(function() {
+          expect(dom.element("#data")[0].innerText).to.eql("Some Data");
+        });
+    });
+
+The above example assumes that there is a method refreshData() present on the scope which returns a promise to indicate completion of the asynchronous code. The rest of the assertions will only continue after this promise as been fulfilled.
+
+
 License
 ----------
 
