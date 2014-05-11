@@ -13,6 +13,8 @@
   "dependencies": {
     "underscore": "latest",
     "requirejs": "latest",
-    "requirejs-text": "latest"
+    "requirejs-text": "latest",
+    "q": "v1",
+    "jquery": "latest"
   }
 }
