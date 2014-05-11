@@ -43,7 +43,7 @@ Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.
     });
 
 
-Documentation
+Setup
 ---------------
 If you intend to set up Duck manually in an environment where RequireJS is not available, you'll need to make sure that the following libraries are available to Duck.
 
