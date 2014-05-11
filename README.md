@@ -58,11 +58,9 @@ On including Duck using script tags, window.duckCtor will be available to you. I
     var builder = duckFactory.ContainerBuilder;
     var container = builder.build("MyModuleName", myModule, { baseUrl: "[baseUrl/for/Duck/dependencies]", textPluginPath: "path/to/text.js"});
 
-Container API
----------------
+##Container API
 
-mvc()
--
+###mvc()
 
 This method sets up a controller and a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns an object which contains the controller, the view, and the scope.
 
@@ -86,8 +84,8 @@ This method sets up a controller and a view, with dependencies that you can inje
     // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
-controller()
---
+###controller()
+
 
 This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
 
@@ -99,13 +97,11 @@ This method sets up only a controller without a view, with dependencies that you
     // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
 
-DuckDOM/DuckUIInteraction API
-------------
+##DuckDOM/DuckUIInteraction API
 
 The DuckDOM/DuckUIInteraction API lets you interact with elements in your constructed view. This only makes sense when you've set up your context using the Container.mvc() method.
 
-element()
---
+###element()
 
 This lets you access any element inside the view using standard jQuery selectors/semantics.
 
@@ -119,12 +115,11 @@ This lets you access any element inside the view using standard jQuery selectors
       expect(dom.element("#someElement").isHidden()).to.eq(true);
     });
 
-apply()
---
+###apply()
+
 This lets you call Angular's $scope.$apply() method in a safe fashion.
 
-interactWith()
---
+###interactWith()
 
 This lets you interact with elements whose controller behaviour is known to be synchronous. Note that $scope.$apply() is automatically invoked after each interaction, so there is no need to call it yourself.
 
@@ -147,8 +142,8 @@ The interactWith() method is 'overloaded' to understand what type of element you
     dom.interactWith("#textField", "Some Text");
     dom.interactWith("#someRadio", true);
 
-with().waitFor()
---
+###with().waitFor()
+
 This call lets you interact with elements whose controller behaviour is known to be asynchronous. In such cases, you want to wait for the asynchronous behaviour to complete before proceeding with test assertions. This method assumes that the asynchronous logic returns a promise whose fulfilment indicates the completion of the user action.
 
     var DuckDOM = duckFactory.DOM;
