@@ -84,10 +84,10 @@ var duckCtor = function (_, angular, Q) {
           }
         });
       }).then(function() {
-          var compiledTemplate = self.compileService(wrappingElement)(scope);
-          applySafely(scope);
-          return compiledTemplate;
-        });
+        var compiledTemplate = self.compileService(wrappingElement)(scope);
+        applySafely(scope);
+        return compiledTemplate;
+      });
     };
 
     var applySafely = function (scope) {
@@ -147,6 +147,14 @@ var duckCtor = function (_, angular, Q) {
         });
       });
     };
+  };
+  var ContainerBuilder = {
+    build: function(module, pathOptions) {
+      angular.bootstrap($("#null"), [module]);
+
+      var injector = angular.injector(["ngMock", "ng", module]);
+      return new Container(injector, null, pathOptions);
+    }
   };
 
   var DuckUIInteraction = function DuckUIInteraction(duckDom) {
@@ -208,7 +216,12 @@ var duckCtor = function (_, angular, Q) {
     var self = this;
     var applySafely = function () {
       if (!scope.$$phase) {
-        scope.$apply();
+        try {
+          scope.$apply();
+        } catch(e) {
+          console.log("Apply failed");
+          console.log(e);
+        }
       }
     };
 
@@ -234,7 +247,7 @@ var duckCtor = function (_, angular, Q) {
           inputElement.submit();
         }
         else if (element.nodeName === "INPUT" && (element.type === "button" || element.type === "submit")) {
-          elements.submit().trigger("click");
+          elements.trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
           elements.click().trigger("click");
@@ -266,21 +279,20 @@ var duckCtor = function (_, angular, Q) {
     };
 
     var duckElement = {
-      isDisplayed : function() {
-        return this.css("display") !== "none" || this.parent().is(":visible");
+      isVisible : function() {
+        return !this.hasClass("ng-hide");
       },
 
       isHidden : function() {
-        return this.css("display") === "none" || this.parent().is(":hidden");
+        return this.hasClass("ng-hide");
       },
-      
       isFocused: function() {
         var deferred = Q.defer();
         this.on("focus", function() {
           deferred.resolve();
         });
         return deferred.promise;
-      }
+       }
     }
 
     this.element = function (selector) {
@@ -288,7 +300,7 @@ var duckCtor = function (_, angular, Q) {
       return  _.extend(element, duckElement);
     };
   };
-  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM };
+  return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM, ContainerBuilder: ContainerBuilder };
 };
 
 if (typeof define !== "undefined") {
@@ -297,5 +309,5 @@ if (typeof define !== "undefined") {
 }
 else {
   console.log("RequireJS is NOT present, defining globally");
-  window.duckCtor = duckCtor; 
+  window.duckCtor = duckCtor;
 }
