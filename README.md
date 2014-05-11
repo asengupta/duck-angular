@@ -62,7 +62,7 @@ Container API
 ---------------
 
 mvc()
---
+-
 
 This method sets up a controller and a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns an object which contains the controller, the view, and the scope.
 
