@@ -32,6 +32,10 @@ var duckCtor = function (_, angular, Q, $) {
       return element;
     };
 
+    this.get = function(dependencyName) {
+      return injector.get(dependencyName);
+    };
+
     // Adapted from https://github.com/asengupta/requirejs-q
     function requireQ(modules) {
       var deferred = Q.defer();
@@ -133,14 +137,14 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.mvc = function (controllerName, viewUrl, dependencies, options) {
-      self.options = options || {dontWait: false, async: false};
+      self.options = options || {dontWait: false, async: false, controllerLoadedPromise: null};
       self.options.preBindHook = self.options.preBindHook || function() {};
       self.options.preRenderHook = self.options.preRenderHook || function() {};
       dependencies = dependencies || {};
       var scope = self.newScope();
       self.options.preBindHook(scope);
       dependencies.$scope = dependencies.injectedScope || scope;
-      var controller = this.controller(controllerName, dependencies, self.options.async || false);
+      var controller = this.controller(controllerName, dependencies, self.options.async || false, self.options.controllerLoadedPromise);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
         return self.allPartialsLoadedDeferred.promise.then(function () {
@@ -150,6 +154,11 @@ var duckCtor = function (_, angular, Q, $) {
     };
   };
   var ContainerBuilder = {
+    dependencies: {},
+    withDependencies: function(appLevelDependencies) {
+      this.dependencies = appLevelDependencies;
+      return this;
+    },
     build: function(moduleName, app, pathOptions) {
       angular.bootstrap($("#null"), [moduleName]);
 
@@ -161,6 +170,18 @@ var duckCtor = function (_, angular, Q, $) {
           };
         });
       });
+
+      var self = this;
+      _.each(_.keys(this.dependencies), function (appDependencyKey) {
+        app.config(function ($provide) {
+          $provide.provider(appDependencyKey, function () {
+            this.$get = function () {
+              return self.dependencies[appDependencyKey];
+            };
+          });
+        });
+      });
+
       return new Container(injector, app, pathOptions);
     }
   };

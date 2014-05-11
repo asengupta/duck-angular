@@ -59,7 +59,9 @@ Initialise the application container, like so:
 
     var duckFactory = duckCtor(_, angular, Q, $);
     var builder = duckFactory.ContainerBuilder;
-    var container = builder.build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
+    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
+
+The withDependencies(...) call is optional, unless you want to inject some dependency which the controller does not use directly.
 
 ##Container API
 
@@ -92,13 +94,18 @@ This method sets up a controller and a view, with dependencies that you can inje
 
 This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
 
-    controller(controllerName, dependencies, isAsync, controllerLoadedPromise).then(function(controller) {
+    return controller(controllerName, dependencies, isAsync, controllerLoadedPromise).then(function(controller) {
       ...
     });
 
     // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
+###get()
+
+This method lets you retrieve any wired Angular dependency by name, like so:
+
+    container.get("$http")
 
 ##Interaction API
 
