@@ -10,7 +10,7 @@ Guides to use this are at:
 * [Part Five: Testing Directives](http://avishek.net/blog/?p=1489)
 * [A Quick Recap](http://avishek.net/blog/?p=1472)
 
-An example AngularJS app using Duck-Angular is at https://github.com/asengupta/AngularJS-RequireJS-Seed in two combinations:
+An example AngularJS app using RequireJS and Duck-Angular is at https://github.com/asengupta/AngularJS-RequireJS-Seed in two combinations:
 
 * [Mocha + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/master)
 * [Jasmine + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/karma-jasmine)
@@ -19,13 +19,22 @@ An example which does not use RequireJS as part of the app is available at: [Ang
 
 duck-angular is a container for bootstrapping and testing AngularJS views and controllers in memory: no browser or external process needed.
 
+Setup
+------
+
 duck-angular is available as a Bower package. Install it using 'bower install duck-angular'.
 
-Include it using RequireJS' define(). Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
+If you intend to set up Duck manually in an environment where RequireJS is not available, you'll need to make sure that the following libraries are available to Duck.
+
+* q.js
+* require.js
+* text.js
+* underscore.js
+
+If you are using RequireJS in your app, Duck will detect it and attempt to load "angular", "underscore", and "Q".
+
+Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
 If you're not using RequireJS in your app, see the example at: [Angular-Toy](https://github.com/kylehodgson/angular-toy). 
-
-Use it in your tests, like so:
-
 Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.com/asengupta/AngularJS-RequireJS-Seed)
 
     // Using Mocha-as-Promised in this example
@@ -43,14 +52,6 @@ Here is an example taken from the [AngularJS-RequireJS Seed app](https://github.
     });
 
 
-Setup
----------------
-If you intend to set up Duck manually in an environment where RequireJS is not available, you'll need to make sure that the following libraries are available to Duck.
-
-* q.js
-* require.js
-* text.js
-* underscore.js
 
 On including Duck using script tags, window.duckCtor will be available to you. Initialise the application container, like so:
 
@@ -72,7 +73,7 @@ This method sets up a controller and a view, with dependencies that you can inje
       controllerLoadedPromise: function(controller) {...} // optional, required if async is true
     };
 
-    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+    return container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
       var controller = mvc.controller;
       var view = mvc.view;
       var scope = mvc.scope;
@@ -107,7 +108,7 @@ This lets you access any element inside the view using standard jQuery selectors
 
     var DuckDOM = duckFactory.DOM;
 
-    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+    return container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
       var controller = mvc.controller;
       var view = mvc.view;
       var scope = mvc.scope;
@@ -125,7 +126,7 @@ This lets you interact with elements whose controller behaviour is known to be s
 
     var DuckDOM = duckFactory.DOM;
 
-    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+    return container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
       var controller = mvc.controller;
       var view = mvc.view;
       var scope = mvc.scope;
@@ -149,7 +150,7 @@ This call lets you interact with elements whose controller behaviour is known to
     var DuckDOM = duckFactory.DOM;
     var UIInteraction = Duck.UIInteraction;
 
-    container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
+    return container.mvc(controllerName, viewUrl, dependencies, options).then(function(mvc) {
       var controller = mvc.controller;
       var view = mvc.view;
       var scope = mvc.scope;
