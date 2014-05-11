@@ -56,7 +56,7 @@ On including Duck using script tags, window.duckCtor will be available to you. I
 
     var duckFactory = duckCtor(_, angular, Q, $);
     var builder = duckFactory.ContainerBuilder;
-    var container = builder.build("MyModuleName", myModule, { baseUrl: "[baseUrl/for/Duck/dependencies]", textPluginPath: "path/to/text.js"});
+    var container = builder.build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
 
 ##Container API
 
