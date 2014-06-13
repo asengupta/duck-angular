@@ -121,7 +121,7 @@ This method lets you retrieve any wired Angular dependency by name, like so:
 
 This method resets all the application-level dependencies that were passed in during construction of the container. This leaves the Angular app in the state it was before any of its entities were overwritten. Use it like so:
 
-  container.reset(angularApp);
+    container.reset(angularApp);
 
 ##Interaction API
 
