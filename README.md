@@ -101,11 +101,27 @@ This method sets up only a controller without a view, with dependencies that you
     // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
+###domMvc()
+This is a convenience wrapper over the mvc() method. It also constructs a new DuckDOM object (discussed in the DuckDOM Interaction API), and returns both the DuckDOM object, and the MVC object, in that order.
+
+If you're using this method, remember to use spread() on the promise, instead of then() to spread the return value over the argument list, like so:
+
+    return container.domMvc(controllerName, viewUrl, dependencies, options).spread(function(dom, mvc) {
+      ...
+    };
+
+
 ###get()
 
 This method lets you retrieve any wired Angular dependency by name, like so:
 
     container.get("$http")
+
+###reset()
+
+This method resets all the application-level dependencies that were passed in during construction of the container. This leaves the Angular app in the state it was before any of its entities were overwritten. Use it like so:
+
+  container.reset(angularApp);
 
 ##Interaction API
 

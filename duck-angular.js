@@ -32,7 +32,7 @@ var duckCtor = function (_, angular, Q, $) {
       return element;
     };
 
-    this.get = function(dependencyName) {
+    this.get = function (dependencyName) {
       return injector.get(dependencyName);
     };
 
@@ -87,7 +87,7 @@ var duckCtor = function (_, angular, Q, $) {
             self.allPartialsLoadedDeferred.resolve();
           }
         });
-      }).then(function() {
+      }).then(function () {
         var compiledTemplate = self.compileService(wrappingElement)(scope);
         applySafely(scope);
         return compiledTemplate;
@@ -106,10 +106,10 @@ var duckCtor = function (_, angular, Q, $) {
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
         viewHTML = viewHTML.replace("ng-controller", "no-controller");
         viewHTML = viewHTML.replace("ng-app", "no-app");
-        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function(compiledTemplate) {
+        self.compileTemplate(viewHTML, scope, preRenderBlock).then(function (compiledTemplate) {
           deferred.resolve(compiledTemplate);
         });
-      }, function(err) {
+      }, function (err) {
         console.log("Bad things happened");
         console.log(err);
       });
@@ -118,9 +118,12 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
       var controller = self.controllerProvider(controllerName, dependencies);
-      if (!isAsync) return Q({});
+      if (!isAsync) {
+        return Q({});
+      }
       var deferred = Q.defer();
-      controllerLoadedPromise = controllerLoadedPromise ? controllerLoadedPromise(controller) : controller.loaded;
+      controllerLoadedPromise =
+      controllerLoadedPromise ? controllerLoadedPromise(controller) : controller.loaded;
       controllerLoadedPromise.then(function () {
         deferred.resolve(controller);
       });
@@ -130,21 +133,29 @@ var duckCtor = function (_, angular, Q, $) {
     this.directiveTemplate = function (element) {
       var deferred = Q.defer();
       var scope = self.newScope();
-      self.compileTemplate(element, scope).then(function(template) {
+      self.compileTemplate(element, scope).then(function (template) {
         deferred.resolve([scope, template]);
       });
       return deferred.promise;
     };
 
+    this.domMvc = function(controllerName, viewUrl, dependencies, options) {
+      return self.mvc(controllerName, viewUrl, dependencies, options).then(function (scopeViewController) {
+        var dom = new DuckDOM(scopeViewController.view, scopeViewController.scope);
+        return [dom, scopeViewController];
+      });
+    };
+
     this.mvc = function (controllerName, viewUrl, dependencies, options) {
       self.options = options || {dontWait: false, async: false, controllerLoadedPromise: null};
-      self.options.preBindHook = self.options.preBindHook || function() {};
-      self.options.preRenderHook = self.options.preRenderHook || function() {};
+      self.options.preBindHook = self.options.preBindHook || function () {};
+      self.options.preRenderHook = self.options.preRenderHook || function () {};
       dependencies = dependencies || {};
       var scope = self.newScope();
       self.options.preBindHook(scope);
       dependencies.$scope = dependencies.injectedScope || scope;
-      var controller = this.controller(controllerName, dependencies, self.options.async || false, self.options.controllerLoadedPromise);
+      var controller = this.controller(controllerName, dependencies, self.options.async || false,
+          self.options.controllerLoadedPromise);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
       return Q.spread([controller, template], function (controller, template) {
         return self.allPartialsLoadedDeferred.promise.then(function () {
@@ -155,24 +166,40 @@ var duckCtor = function (_, angular, Q, $) {
   };
   var ContainerBuilder = {
     dependencies: {},
-    withDependencies: function(appLevelDependencies) {
+    originalDependenciesCache: {},
+
+    withDependencies: function (appLevelDependencies) {
       this.dependencies = appLevelDependencies;
       return this;
     },
-    build: function(moduleName, app, pathOptions) {
-      angular.bootstrap($("#null"), [moduleName]);
 
-      var injector = angular.injector(["ng", moduleName]);
-      app.config(function($provide) {
-        $provide.provider("$rootElement", function() {
-          this.$get = function() {
+    reset: function (app) {
+      var self = this;
+      _.each(_.keys(self.originalDependenciesCache), function (appDependencyKey) {
+        app.config(function ($provide) {
+          $provide.provider(appDependencyKey, function () {
+            this.$get = function () {
+              return self.originalDependenciesCache[appDependencyKey];
+            };
+          });
+        });
+      });
+    },
+    build: function (moduleName, app, pathOptions) {
+      app.config(function ($provide) {
+        $provide.provider("$rootElement", function () {
+          this.$get = function () {
             return $("#dummy");
           };
         });
       });
+      angular.bootstrap($("#null" + new Date().getMilliseconds()), [moduleName]);
+
+      var injector = angular.injector(["ng", moduleName]);
 
       var self = this;
       _.each(_.keys(this.dependencies), function (appDependencyKey) {
+        self.originalDependenciesCache[appDependencyKey] = injector.get(appDependencyKey);
         app.config(function ($provide) {
           $provide.provider(appDependencyKey, function () {
             this.$get = function () {
@@ -205,11 +232,13 @@ var duckCtor = function (_, angular, Q, $) {
       var originalFn = o[fn];
       o[fn] = function () {
         var originalPromise = originalFn.apply(o, arguments);
+
         function resolveOriginalFunction() {
           duckDom.apply();
           o[fn] = originalFn;
           deferred.resolve();
         }
+
         if (originalPromise && originalPromise.then) {
           originalPromise.then(function (result) {
             resolveOriginalFunction();
@@ -219,7 +248,7 @@ var duckCtor = function (_, angular, Q, $) {
             o[fn] = originalFn;
             deferred.reject(errors);
           });
-        }else{
+        } else {
           resolveOriginalFunction();
         }
       };
@@ -247,16 +276,16 @@ var duckCtor = function (_, angular, Q, $) {
       if (!scope.$$phase) {
         try {
           scope.$apply();
-        } catch(e) {
+        } catch (e) {
           console.log("Apply failed");
           console.log(e);
         }
       }
     };
 
-    this.applyAndDo = function(command){
+    this.applyAndDo = function (command) {
       var deferred = Q.defer();
-      scope.$apply(function(){
+      scope.$apply(function () {
         command();
         deferred.resolve();
       });
@@ -267,7 +296,13 @@ var duckCtor = function (_, angular, Q, $) {
       var elements = angular.element(selector, view);
 
       _.each(elements, function (element) {
-        if (element.nodeName === "TEXTAREA" || (element.nodeName === "INPUT" && (element.type === "text" || element.type === "password" || element.type === "number" || element.type === "tel" || element.type === "email" || element.type === "date" ))) {
+        if (element.nodeName === "TEXTAREA" || (element.nodeName === "INPUT" &&
+                                                (element.type === "text" ||
+                                                 element.type === "password" ||
+                                                 element.type === "number" ||
+                                                 element.type === "tel" ||
+                                                 element.type === "email" ||
+                                                 element.type === "date" ))) {
           elements.focus();
           elements.val(value).trigger("input");
         }
@@ -275,7 +310,8 @@ var duckCtor = function (_, angular, Q, $) {
           var inputElement = angular.element("input[type='submit']");
           inputElement.submit();
         }
-        else if (element.nodeName === "INPUT" && (element.type === "button" || element.type === "submit")) {
+        else if (element.nodeName === "INPUT" &&
+                 (element.type === "button" || element.type === "submit")) {
           elements.trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
@@ -283,7 +319,7 @@ var duckCtor = function (_, angular, Q, $) {
           elements.prop("checked", !elements.prop("checked"));
         }
         else if (element.nodeName === "INPUT" && element.type === "radio") {
-          elements.attr("checked", elements.attr("checked") ? null: "checked").click();
+          elements.attr("checked", elements.attr("checked") ? null : "checked").click();
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value != null) {
           while (elements.prop("checked") != value) {
@@ -308,21 +344,21 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     var duckElement = {
-      isVisible : function() {
+      isVisible: function () {
         return !this.hasClass("ng-hide");
       },
 
-      isHidden : function() {
+      isHidden: function () {
         return this.hasClass("ng-hide");
       },
-      isFocused: function() {
+      isFocused: function () {
         var deferred = Q.defer();
-        this.on("focus", function() {
+        this.on("focus", function () {
           deferred.resolve();
         });
         return deferred.promise;
       }
-    }
+    };
 
     this.element = function (selector) {
       var element = angular.element(selector, view);
