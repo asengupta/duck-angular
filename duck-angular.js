@@ -1,3 +1,12 @@
+// Adapted from https://github.com/asengupta/requirejs-q
+function requireQ(modules) {
+  var deferred = Q.defer();
+  require(modules, function () {
+    deferred.resolve(arguments);
+  });
+  return deferred.promise;
+}
+
 var duckCtor = function (_, angular, Q, $) {
   var Container = function Container(injector, app, pathOptions) {
     if (pathOptions) {
@@ -35,15 +44,6 @@ var duckCtor = function (_, angular, Q, $) {
     this.get = function (dependencyName) {
       return injector.get(dependencyName);
     };
-
-    // Adapted from https://github.com/asengupta/requirejs-q
-    function requireQ(modules) {
-      var deferred = Q.defer();
-      require(modules, function () {
-        deferred.resolve(arguments);
-      });
-      return deferred.promise;
-    }
 
     this.numPartials = function num(element) {
       var includes = element.find("[ng-include]");
@@ -228,7 +228,7 @@ var duckCtor = function (_, angular, Q, $) {
       });
       return new Container(injector, app, pathOptions);
     },
-    
+
     build: function (moduleName, app, pathOptions) {
       var self = this;
       var mockModule = angular.module("lool", [moduleName, "ng"]);
@@ -325,6 +325,11 @@ var duckCtor = function (_, angular, Q, $) {
           console.log(e);
         }
       }
+    };
+
+    this.emit = function(ev, args) {
+      scope.$emit(ev, args);
+      applySafely();
     };
 
     this.applyAndDo = function (command) {
