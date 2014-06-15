@@ -63,6 +63,51 @@ Initialise the application container, like so:
 
 The withDependencies(...) call is optional, unless you want to inject some dependency which the controller does not use directly.
 
+##ContainerBuilder API
+
+###withDependencies()
+
+This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the **builder** object, so it can be chained, until **build()** or **buildRaw()** is called.
+
+###cacheTemplate()
+
+This is specifically to prevent template load errors when we specify templateUrl values for directives. This preloads the templateUrl into Angular's template cache. Note that this returns a promise. You will need to wait for the promise to be fulfilled, either right after the point of the call, or before the start of the test. Here's an example of how you could do this:
+
+    var setup = function(appLevelDependencies) {
+      return buildContainer(appLevelDependencies).then(function (container) {
+        return container.domMvc("ControllerName", "path/to/view", controllerDependencies)
+      });
+    };
+
+    var buildContainer = function (appLevelDependencies) {
+      var builder = duckFactory.ContainerBuilder;
+      return builder.withDependencies(appLevelDependencies).
+          cacheTemplate(moduleUnderTest, "declared/path/to/directive/template", "actual/path/to/template").
+          then(function () {
+            return builder.build("Cinnamon", cinnamon,
+                {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text"});
+          });
+    };
+
+Note that it is entirely possible for the declared **templateUrl** to be the same as the path to access it; however, it may be different if you're using a test runner like Karma, which could serve static assets from a different path. This also allows a cheap form of URL rewriting if the path to your template does not match the path it actually is served from, like in Karma.
+
+
+###build()
+
+This method will construct and return the Container. It takes in 3 parameters:
+* Module name: The module name will be the module under test.
+* Module object: This is the actual module object that will be bootstrapped.
+* Path options: This option is only required when the application is not using RequireJS. Because Duck-Angular uses the text plugin to load resources like views, it needs to know the path to the text plugin. This is where you specify both the baseUrl, and the path to the text plugin, like so:
+
+    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
+
+This method returns a Container object, whose API is discussed below.
+The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies. If you wish to bootstrap the original module directly, please use **buildRaw()**.
+
+###buildRaw()
+
+This method is exactly like **build()**, except that it bootstraps the original module directly, instead of using a mock module to override dependencies. Please note that using this method instead of **build()** implies that any app-level dependencies can potentially override all dependencies for all tests, unless application initialisation scripts are run for every new scenario. Alternatively, you may restore the original dependencies manually after every scenario.
+
 ##Container API
 
 ###mvc()
@@ -116,12 +161,6 @@ If you're using this method, remember to use spread() on the promise, instead of
 This method lets you retrieve any wired Angular dependency by name, like so:
 
     container.get("$http")
-
-###reset()
-
-This method resets all the application-level dependencies that were passed in during construction of the container. This leaves the Angular app in the state it was before any of its entities were overwritten. Use it like so:
-
-    container.reset(angularApp);
 
 ##Interaction API
 

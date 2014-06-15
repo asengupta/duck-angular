@@ -139,11 +139,12 @@ var duckCtor = function (_, angular, Q, $) {
       return deferred.promise;
     };
 
-    this.domMvc = function(controllerName, viewUrl, dependencies, options) {
-      return self.mvc(controllerName, viewUrl, dependencies, options).then(function (scopeViewController) {
-        var dom = new DuckDOM(scopeViewController.view, scopeViewController.scope);
-        return [dom, scopeViewController];
-      });
+    this.domMvc = function (controllerName, viewUrl, dependencies, options) {
+      return self.mvc(controllerName, viewUrl, dependencies,
+          options).then(function (scopeViewController) {
+            var dom = new DuckDOM(scopeViewController.view, scopeViewController.scope);
+            return [dom, scopeViewController];
+          });
     };
 
     this.mvc = function (controllerName, viewUrl, dependencies, options) {
@@ -164,52 +165,95 @@ var duckCtor = function (_, angular, Q, $) {
       });
     };
   };
+
   var ContainerBuilder = {
     dependencies: {},
     originalDependenciesCache: {},
+    originalProvide: null,
+    getQ: function (url) {
+      var defer = Q.defer();
+      var req = new XMLHttpRequest();
+      req.open("GET", url, true);
+      req.onload = function (e) {
+        var result = req.responseText;
+        defer.resolve(result);
+      };
+      req.onerror = function (e) {
+        console.error("Putting failed", e);
+        defer.reject(e);
+      };
+      req.send();
+      return defer.promise;
+    },
 
+    cacheTemplate: function (app, templateUrl, realTemplateUrl) {
+      var self = this;
+      return self.getQ(realTemplateUrl).then(function (templateText) {
+        app.run(function ($templateCache) {
+          $templateCache.put(templateUrl, templateText);
+        });
+      });
+    },
     withDependencies: function (appLevelDependencies) {
       this.dependencies = appLevelDependencies;
       return this;
     },
 
     reset: function (app) {
-      var self = this;
-      _.each(_.keys(self.originalDependenciesCache), function (appDependencyKey) {
-        app.config(function ($provide) {
-          $provide.provider(appDependencyKey, function () {
-            this.$get = function () {
-              return self.originalDependenciesCache[appDependencyKey];
-            };
-          });
-        });
-      });
     },
-    build: function (moduleName, app, pathOptions) {
+
+    buildRaw: function (moduleName, app, pathOptions) {
+      var self = this;
       app.config(function ($provide) {
+        self.originalProvide = $provide;
         $provide.provider("$rootElement", function () {
           this.$get = function () {
-            return $("#dummy");
+            return $("#Moaha");
           };
         });
       });
-      angular.bootstrap($("#null" + new Date().getMilliseconds()), [moduleName]);
+      var injector = angular.bootstrap($("#null" + new Date().getMilliseconds()), [moduleName]);
+      self.originalModule = angular.copy(app);
 
-      var injector = angular.injector(["ng", moduleName]);
-
-      var self = this;
       _.each(_.keys(this.dependencies), function (appDependencyKey) {
-        self.originalDependenciesCache[appDependencyKey] = injector.get(appDependencyKey);
-        app.config(function ($provide) {
-          $provide.provider(appDependencyKey, function () {
+        if (typeof self.dependencies[appDependencyKey] === "function") {
+          var v = self.dependencies[appDependencyKey](self.originalProvide, app);
+        } else {
+          self.originalProvide.provider(appDependencyKey, function () {
             this.$get = function () {
               return self.dependencies[appDependencyKey];
             };
           });
+        }
+      });
+      return new Container(injector, app, pathOptions);
+    },
+    
+    build: function (moduleName, app, pathOptions) {
+      var self = this;
+      var mockModule = angular.module("lool", [moduleName, "ng"]);
+      mockModule.config(function($provide) {
+        $provide.provider("$rootElement", function () {
+          this.$get = function () {
+            return $("#Moaha");
+          };
+        });
+
+        _.each(_.keys(self.dependencies), function (appDependencyKey) {
+          if (typeof self.dependencies[appDependencyKey] === "function") {
+            var v = self.dependencies[appDependencyKey]($provide, mockModule);
+          } else {
+            $provide.provider(appDependencyKey, function () {
+              this.$get = function () {
+                return self.dependencies[appDependencyKey];
+              };
+            });
+          }
         });
       });
 
-      return new Container(injector, app, pathOptions);
+      var injector = angular.bootstrap($("#null" + new Date().getMilliseconds()), ["lool"]);
+      return new Container(injector, mockModule, pathOptions);
     }
   };
 
@@ -370,7 +414,7 @@ var duckCtor = function (_, angular, Q, $) {
 
 if (typeof define !== "undefined") {
   console.log("RequireJS is present, defining AMD module");
-  define(["underscore", "angular", "Q"], duckCtor);
+  define(["underscore", "angular", "q"], duckCtor);
 }
 else {
   console.log("RequireJS is NOT present, defining globally");
