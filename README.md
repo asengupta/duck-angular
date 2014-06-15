@@ -78,7 +78,7 @@ This is specifically to prevent template load errors when we specify templateUrl
         return container.domMvc("ControllerName", "path/to/view", controllerDependencies)
       });
     };
-
+     
     var buildContainer = function (appLevelDependencies) {
       var builder = duckFactory.ContainerBuilder;
       return builder.withDependencies(appLevelDependencies).
