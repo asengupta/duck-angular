@@ -99,7 +99,9 @@ This method will construct and return the Container. It takes in 3 parameters:
 * Module object: This is the actual module object that will be bootstrapped.
 * Path options: This option is only required when the application is not using RequireJS. Because Duck-Angular uses the text plugin to load resources like views, it needs to know the path to the text plugin. This is where you specify both the baseUrl, and the path to the text plugin, like so:
 
-    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
+Assuming you have text.js somewhere, simply specify that and the baseUrl.
+
+     var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
 
 This method returns a Container object, whose API is discussed below.
 The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies. If you wish to bootstrap the original module directly, please use **buildRaw()**.
