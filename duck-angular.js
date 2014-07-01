@@ -37,6 +37,7 @@ var duckCtor = function (_, angular, Q, $) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
       element.find("[ng-controller]").remove();
+      element.find("[show-media-src]").remove();
 
       return element;
     };
@@ -232,7 +233,7 @@ var duckCtor = function (_, angular, Q, $) {
     build: function (moduleName, app, pathOptions) {
       var self = this;
       var mockModule = angular.module("lool", [moduleName, "ng"]);
-      mockModule.config(function($provide) {
+      mockModule.config(function ($provide) {
         $provide.provider("$rootElement", function () {
           this.$get = function () {
             return $("#Moaha");
@@ -327,7 +328,7 @@ var duckCtor = function (_, angular, Q, $) {
       }
     };
 
-    this.emit = function(ev, args) {
+    this.emit = function (ev, args) {
       scope.$emit(ev, args);
       applySafely();
     };
@@ -353,7 +354,7 @@ var duckCtor = function (_, angular, Q, $) {
                                                  element.type === "email" ||
                                                  element.type === "date" ))) {
           elements.focus();
-          elements.val(value).trigger("input");
+          elements.val(value).trigger("input").trigger("keypress");
         }
         else if (element.nodeName === "FORM") {
           var inputElement = angular.element("input[type='submit']");
@@ -361,6 +362,9 @@ var duckCtor = function (_, angular, Q, $) {
         }
         else if (element.nodeName === "INPUT" &&
                  (element.type === "button" || element.type === "submit")) {
+          if (elements.submit) {
+            elements.submit();
+          }
           elements.trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
