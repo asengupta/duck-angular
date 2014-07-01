@@ -229,7 +229,13 @@ This call lets you interact with elements whose controller behaviour is known to
 
 The above example assumes that there is a method refreshData() present on the scope which returns a promise to indicate completion of the asynchronous code. The rest of the assertions will only continue after this promise as been fulfilled.
 
+###trigger()
 
+This is merely a wrapper over jQuery's trigger() method, for firing events on elements. If you're using the interaction API, you merely need to write something like this:
+
+     dom.trigger("#someId", "someEvent");
+     
+     
 License
 ----------
 
