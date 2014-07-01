@@ -37,7 +37,6 @@ var duckCtor = function (_, angular, Q, $) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
       element.find("[ng-controller]").remove();
-      element.find("[show-media-src]").remove();
 
       return element;
     };
