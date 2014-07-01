@@ -233,7 +233,7 @@ var duckCtor = function (_, angular, Q, $) {
     build: function (moduleName, app, pathOptions) {
       var self = this;
       var mockModule = angular.module("lool", [moduleName, "ng"]);
-      mockModule.config(function ($provide) {
+      mockModule.config(function($provide) {
         $provide.provider("$rootElement", function () {
           this.$get = function () {
             return $("#Moaha");
@@ -328,7 +328,7 @@ var duckCtor = function (_, angular, Q, $) {
       }
     };
 
-    this.emit = function (ev, args) {
+    this.emit = function(ev, args) {
       scope.$emit(ev, args);
       applySafely();
     };
@@ -340,6 +340,11 @@ var duckCtor = function (_, angular, Q, $) {
         deferred.resolve();
       });
       return deferred.promise;
+    };
+
+    this.trigger = function(selector, event) {
+      var elements = angular.element(selector, view);
+      elements.trigger(event);
     };
 
     this.interactWith = function (selector, value) {
@@ -354,7 +359,7 @@ var duckCtor = function (_, angular, Q, $) {
                                                  element.type === "email" ||
                                                  element.type === "date" ))) {
           elements.focus();
-          elements.val(value).trigger("input").trigger("keypress");
+          elements.val(value).trigger("input");
         }
         else if (element.nodeName === "FORM") {
           var inputElement = angular.element("input[type='submit']");
@@ -362,9 +367,7 @@ var duckCtor = function (_, angular, Q, $) {
         }
         else if (element.nodeName === "INPUT" &&
                  (element.type === "button" || element.type === "submit")) {
-          if (elements.submit) {
-            elements.submit();
-          }
+          if (elements.submit) elements.submit();
           elements.trigger("click");
         }
         else if (element.nodeName === "INPUT" && element.type === "checkbox" && value == null) {
@@ -410,6 +413,12 @@ var duckCtor = function (_, angular, Q, $) {
           deferred.resolve();
         });
         return deferred.promise;
+      },
+      isDisabled: function() {
+        return this.attr("disabled") === "disabled" || this.attr("disabled") === "true";
+      },
+      isEnabled: function() {
+        return !this.isDisabled();
       }
     };
 
