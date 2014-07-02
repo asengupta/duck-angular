@@ -248,11 +248,11 @@ var duckCtor = function (_, angular, Q, $) {
         $provide.decorator("$controller", function($delegate) {
           return function(ctrlName, deps) {
             if (ctrlName === hackDependencies.rootControllerName) {
-              if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend(deps, hackDependencies[ctrlName]), {$scope: hackDependencies.$scope});
-              return $delegate(ctrlName, _.extend(deps, { $scope: hackDependencies.$scope }))
+              if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies.$scope)}));
+              return $delegate(ctrlName, {$scope: _.extend(deps.$scope, hackDependencies.$scope)})
             }
-            if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend(deps, hackDependencies[ctrlName]));
-            return $delegate(ctrlName, _.extend(deps, { $scope: hackDependencies.$scope.$new()}));
+            if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies[ctrlName].$scope)}));
+            return $delegate(ctrlName, deps);
           };
         });
 
