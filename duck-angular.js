@@ -204,36 +204,6 @@ var duckCtor = function (_, angular, Q, $) {
       return this;
     },
 
-    reset: function (app) {
-    },
-
-    buildRaw: function (moduleName, app, pathOptions) {
-      var self = this;
-      app.config(function ($provide) {
-        self.originalProvide = $provide;
-        $provide.provider("$rootElement", function () {
-          this.$get = function () {
-            return $("#Moaha");
-          };
-        });
-      });
-      var injector = angular.bootstrap($("#null" + new Date().getMilliseconds()), [moduleName]);
-      self.originalModule = angular.copy(app);
-
-      _.each(_.keys(this.dependencies), function (appDependencyKey) {
-        if (typeof self.dependencies[appDependencyKey] === "function") {
-          var v = self.dependencies[appDependencyKey](self.originalProvide, app);
-        } else {
-          self.originalProvide.provider(appDependencyKey, function () {
-            this.$get = function () {
-              return self.dependencies[appDependencyKey];
-            };
-          });
-        }
-      });
-      return new Container(injector, app, pathOptions);
-    },
-
     build: function (moduleName, app, pathOptions) {
       var self = this;
 
