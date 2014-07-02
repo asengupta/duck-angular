@@ -132,9 +132,11 @@ This method sets up a controller and a view, with dependencies that you can inje
     // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
-#Important Notes:
+###Important Notes about mvc() and domMvc():
 
-* The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, the structure of the **dependencies** parameter has changed. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
+The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, the structure of the **dependencies** parameter has changed. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
+
+
 
     var controllerDependencies = {controller1: { 
                                   //...Controller1 dependencies
@@ -150,7 +152,6 @@ This method sets up a controller and a view, with dependencies that you can inje
 You can still specify an optional $scope field directly inside **controllerDependencies**; this will become the scope of the root controller. This will be removed in future versions.
 
 ###controller()
-
 
 This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
 
@@ -170,6 +171,8 @@ If you're using this method, remember to use spread() on the promise, instead of
       ...
     };
 
+
+All the notes regarding **mvc()** apply here as well.
 
 ###get()
 
