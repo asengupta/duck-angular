@@ -8,6 +8,9 @@ function requireQ(modules) {
 }
 
 var duckCtor = function (_, angular, Q, $) {
+  var hackDependencies = {};
+  var originalControllerProvider;
+
   var Container = function Container(injector, app, pathOptions) {
     if (pathOptions) {
       require.config({
@@ -36,7 +39,7 @@ var duckCtor = function (_, angular, Q, $) {
     this.removeElementsBelongingToDifferentScope = function (element) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
-      element.find("[ng-controller]").remove();
+      // element.find("[ng-controller]").remove();
 
       return element;
     };
@@ -104,7 +107,7 @@ var duckCtor = function (_, angular, Q, $) {
       var deferred = Q.defer();
       require(["text!" + viewUrl], function (viewHTML) {
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
-        viewHTML = viewHTML.replace("ng-controller", "no-controller");
+        // viewHTML = viewHTML.replace("ng-controller", "no-controller");
         viewHTML = viewHTML.replace("ng-app", "no-app");
         self.compileTemplate(viewHTML, scope, preRenderBlock).then(function (compiledTemplate) {
           deferred.resolve(compiledTemplate);
@@ -117,7 +120,9 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
-      var controller = self.controllerProvider(controllerName, dependencies);
+      hackDependencies = dependencies;
+      hackDependencies.rootControllerName = controllerName;
+      var controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
       if (!isAsync) {
         return Q({});
       }
@@ -154,7 +159,7 @@ var duckCtor = function (_, angular, Q, $) {
       dependencies = dependencies || {};
       var scope = self.newScope();
       self.options.preBindHook(scope);
-      dependencies.$scope = dependencies.injectedScope || scope;
+      dependencies.$scope = _.extend(scope, dependencies.$scope || {});
       var controller = this.controller(controllerName, dependencies, self.options.async || false,
           self.options.controllerLoadedPromise);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
@@ -231,6 +236,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     build: function (moduleName, app, pathOptions) {
       var self = this;
+
       var mockModule = angular.module("lool", [moduleName, "ng"]);
       mockModule.config(function($provide) {
         $provide.provider("$rootElement", function () {
@@ -238,6 +244,18 @@ var duckCtor = function (_, angular, Q, $) {
             return $("#Moaha");
           };
         });
+
+        $provide.decorator("$controller", function($delegate) {
+          return function(ctrlName, deps) {
+            if (ctrlName === hackDependencies.rootControllerName) {
+              if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend(deps, hackDependencies[ctrlName]), {$scope: hackDependencies.$scope});
+              return $delegate(ctrlName, _.extend(deps, { $scope: hackDependencies.$scope }))
+            }
+            if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend(deps, hackDependencies[ctrlName]));
+            return $delegate(ctrlName, _.extend(deps, { $scope: hackDependencies.$scope.$new()}));
+          };
+        });
+
 
         _.each(_.keys(self.dependencies), function (appDependencyKey) {
           if (typeof self.dependencies[appDependencyKey] === "function") {
@@ -431,7 +449,7 @@ var duckCtor = function (_, angular, Q, $) {
 
 if (typeof define !== "undefined") {
   console.log("RequireJS is present, defining AMD module");
-  define(["underscore", "angular", "q"], duckCtor);
+  define(["underscore", "angular", "Q", "jquery"], duckCtor);
 }
 else {
   console.log("RequireJS is NOT present, defining globally");
