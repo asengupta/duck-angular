@@ -67,7 +67,7 @@ The withDependencies(...) call is optional, unless you want to inject some depen
 
 ###withDependencies()
 
-This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the **builder** object, so it can be chained, until **build()** or **buildRaw()** is called.
+This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the **builder** object, so it can be chained, until **build()** is called.
 
 ###cacheTemplate()
 
@@ -104,11 +104,7 @@ Assuming you have text.js somewhere, simply specify that and the baseUrl.
      var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
 
 This method returns a Container object, whose API is discussed below.
-The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies. If you wish to bootstrap the original module directly, please use **buildRaw()**.
-
-###buildRaw()
-
-This method is exactly like **build()**, except that it bootstraps the original module directly, instead of using a mock module to override dependencies. Please note that using this method instead of **build()** implies that any app-level dependencies can potentially override all dependencies for all tests, unless application initialisation scripts are run for every new scenario. Alternatively, you may restore the original dependencies manually after every scenario.
+The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies.
 
 ##Container API
 
@@ -135,6 +131,23 @@ This method sets up a controller and a view, with dependencies that you can inje
     // dontWait is optional, and has a default value of false. Set it to true, if you do not want to wait for nested ng-include partial resolution.
     // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
+
+#Important Notes:
+
+* The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, the structure of the **dependencies** parameter has changed. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
+
+    var controllerDependencies = {controller1: { 
+                                  //...Controller1 dependencies
+                                            },
+                              controller2: { 
+                                  //...Controller2 dependencies
+                              },
+                              controller3: { 
+                                  //...Controller3 dependencies
+                              },
+                             };
+
+You can still specify an optional $scope field directly inside **controllerDependencies**; this will become the scope of the root controller. This will be removed in future versions.
 
 ###controller()
 
