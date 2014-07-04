@@ -1,0 +1,23 @@
+{
+  "name": "duck-angular",
+  "description": "duck-angular ============",
+  "version": "0.0.0",
+  "main": "duck-angular.js",
+
+  "dependencies": {},
+  "devDependencies": {
+    "karma": "",
+    "karma-mocha": "",
+    "karma-chai": "",
+    "karma-sinon": "",
+    "requirejs": "",
+    "chai": "",
+    "karma-requirejs": "",
+    "karma-phantomjs-launcher": "",
+    "angular": "",
+    "jquery": "",
+    "q": "v1",
+    "underscore": "",
+    "text": "requirejs/text"
+  }
+}
