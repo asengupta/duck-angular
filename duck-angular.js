@@ -388,7 +388,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        return !this.hasClass("ng-hide");
+        return this.size() > 0 && !this.hasClass("ng-hide");
       },
 
       isHidden: function () {
