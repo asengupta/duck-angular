@@ -1,6 +1,6 @@
 define(['duck-angular', 'angular'], function(duckAngular, angular) {
   describe("duck-angular", function() {
-    var builder;
+    var duckDom;
 
     beforeEach(function() {
       var mockApp = angular.module('trivialTestApp', []);
@@ -8,18 +8,20 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
         $scope.foo = "bar";
       });
 
-      builder = duckAngular.ContainerBuilder.build("trivialTestApp", mockApp);
+      duckDom = duckAngular
+        .ContainerBuilder.build("trivialTestApp", mockApp)
+        .domMvc("trivialController", "test/trivialTest.html", {});
     });
 
     it("should load a controller", function() {
-      return builder.domMvc("trivialController", "test/trivialTest.html", {}).spread(function(dom, mvc) {
+      return duckDom.spread(function(dom, mvc) {
         expect(mvc.scope.foo).to.eql("bar");
       });
 
     });
 
     it("should load a view", function() {
-      return builder.domMvc("trivialController", "test/trivialTest.html", {}).spread(function(dom, mvc) {
+      return duckDom.spread(function(dom, mvc) {
         expect(dom.element('div').text()).to.eql('bar');
       });
     });
