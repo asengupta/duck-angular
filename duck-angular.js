@@ -11,11 +11,12 @@ var duckCtor = function (_, angular, Q, $) {
   var hackDependencies = {};
   var originalControllerProvider;
 
-  var Container = function Container(injector, app, pathOptions) {
-    if (pathOptions) {
+  var Container = function Container(injector, app, featureOptions) {
+    featureOptions = featureOptions || {}
+    if (featureOptions.baseUrl && featureOptions.textPluginPath) {
       require.config({
-        baseUrl: pathOptions.baseUrl,
-        paths: { text: pathOptions.textPluginPath}
+        baseUrl: featureOptions.baseUrl,
+        paths: { text: featureOptions.textPluginPath}
       });
     }
 
@@ -105,6 +106,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
+      console.log("The viewURL is " + viewUrl);
       require(["text!" + viewUrl], function (viewHTML) {
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
         // viewHTML = viewHTML.replace("ng-controller", "no-controller");
@@ -120,9 +122,13 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
-      hackDependencies = dependencies;
-      hackDependencies.rootControllerName = controllerName;
-      var controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
+      if (multipleControllersFeature(featureOptions)) {
+        hackDependencies = dependencies;
+        hackDependencies.rootControllerName = controllerName;
+        var controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
+      } else {
+        var controller = self.controllerProvider(controllerName, dependencies);
+      }
       if (!isAsync) {
         return Q({});
       }
@@ -171,6 +177,10 @@ var duckCtor = function (_, angular, Q, $) {
     };
   };
 
+  var multipleControllersFeature = function(featureOptions) {
+    return featureOptions && featureOptions.multipleControllers;
+  };
+
   var ContainerBuilder = {
     dependencies: {},
     originalDependenciesCache: {},
@@ -204,7 +214,7 @@ var duckCtor = function (_, angular, Q, $) {
       return this;
     },
 
-    build: function (moduleName, app, pathOptions) {
+    build: function (moduleName, app, featureOptions) {
       var self = this;
 
       var mockModule = angular.module("lool", [moduleName, "ng"]);
@@ -215,16 +225,18 @@ var duckCtor = function (_, angular, Q, $) {
           };
         });
 
-        $provide.decorator("$controller", function($delegate) {
-          return function(ctrlName, deps) {
-            if (ctrlName === hackDependencies.rootControllerName) {
-              if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies.$scope)}));
-              return $delegate(ctrlName, {$scope: _.extend(deps.$scope, hackDependencies.$scope)})
-            }
-            if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies[ctrlName].$scope)}));
-            return $delegate(ctrlName, deps);
-          };
-        });
+        if (multipleControllersFeature(featureOptions)) {
+          $provide.decorator("$controller", function($delegate) {
+            return function(ctrlName, deps) {
+              if (ctrlName === hackDependencies.rootControllerName) {
+                if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies.$scope)}));
+                return $delegate(ctrlName, {$scope: _.extend(deps.$scope, hackDependencies.$scope)})
+              }
+              if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies[ctrlName].$scope)}));
+              return $delegate(ctrlName, deps);
+            };
+          });
+        }
 
 
         _.each(_.keys(self.dependencies), function (appDependencyKey) {
@@ -241,7 +253,7 @@ var duckCtor = function (_, angular, Q, $) {
       });
 
       var injector = angular.bootstrap($("#null" + new Date().getMilliseconds()), ["lool"]);
-      return new Container(injector, mockModule, pathOptions);
+      return new Container(injector, mockModule, featureOptions);
     }
   };
 
@@ -388,7 +400,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        return this.size() > 0 && !this.hasClass("ng-hide");
+        return !this.hasClass("ng-hide");
       },
 
       isHidden: function () {
