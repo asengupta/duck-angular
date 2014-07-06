@@ -59,9 +59,11 @@ Initialise the application container, like so:
 
     var duckFactory = duckCtor(_, angular, Q, $);
     var builder = duckFactory.ContainerBuilder;
-    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
+    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js", multipleControllers: true});
 
 The withDependencies(...) call is optional, unless you want to inject some dependency which the controller does not use directly.
+
+The third parameter has the key **multipleControllers**. Unless specified, this is false. Setting this to true, allows us to inject dependencies not only into the top-level controller, but also on any nested controllers.
 
 ##ContainerBuilder API
 
@@ -97,13 +99,16 @@ Note that it is entirely possible for the declared **templateUrl** to be the sam
 This method will construct and return the Container. It takes in 3 parameters:
 * Module name: The module name will be the module under test.
 * Module object: This is the actual module object that will be bootstrapped.
-* Path options: This option is only required when the application is not using RequireJS. Because Duck-Angular uses the text plugin to load resources like views, it needs to know the path to the text plugin. This is where you specify both the baseUrl, and the path to the text plugin, like so:
+* Feature options: This option is required when the application is not using RequireJS. Because Duck-Angular uses the text plugin to load resources like views, it needs to know the path to the text plugin. This is where you specify both the baseUrl, and the path to the text plugin, like so:
 
 Assuming you have text.js somewhere, simply specify that and the baseUrl.
 
      var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js"});
 
 This method returns a Container object, whose API is discussed below.
+
+The feature options object also supports setting the **multipleControllers** option, which controls whether you can inject dependencies only into the top-level controller, or into nested controllers as well. This is discussed in the notes under **domMvc()** and **mvc()**.
+
 The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies.
 
 ##Container API
@@ -134,8 +139,19 @@ This method sets up a controller and a view, with dependencies that you can inje
 
 ###Important Notes about mvc() and domMvc():
 
-The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, the structure of the **dependencies** parameter has changed. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
+The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, you need to set the **multipleControllers** key in the **featureOptions** parameter in the **build()** method to *true*, like so:
 
+    var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js", multipleControllers: true});
+
+####When **multipleControllers** is **false** or unspecified
+The structure of the **dependencies** parameter only supports injecting dependencies for the top-level controller, like so:
+
+    var controllerDependencies = { 
+      // Top-level controller dependencies
+    };
+
+####When **multipleControllers** is **true**
+The structure of the **dependencies** parameter is different in this scenario. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
 
 
     var controllerDependencies = {controller1: { 
