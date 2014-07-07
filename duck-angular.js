@@ -40,7 +40,8 @@ var duckCtor = function (_, angular, Q, $) {
     this.removeElementsBelongingToDifferentScope = function (element) {
       element.find("[modal]").removeAttr("modal");
       element.find("[options]").removeAttr("options");
-      // element.find("[ng-controller]").remove();
+      if (!multipleControllersFeature(featureOptions))
+        element.find("[ng-controller]").remove();
 
       return element;
     };
@@ -106,10 +107,10 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
-      console.log("The viewURL is " + viewUrl);
       require(["text!" + viewUrl], function (viewHTML) {
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
-        // viewHTML = viewHTML.replace("ng-controller", "no-controller");
+        if (!multipleControllersFeature(featureOptions))
+          viewHTML = viewHTML.replace("ng-controller", "no-controller");
         viewHTML = viewHTML.replace("ng-app", "no-app");
         self.compileTemplate(viewHTML, scope, preRenderBlock).then(function (compiledTemplate) {
           deferred.resolve(compiledTemplate);
@@ -122,12 +123,13 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
+      var controller;
       if (multipleControllersFeature(featureOptions)) {
         hackDependencies = dependencies;
         hackDependencies.rootControllerName = controllerName;
-        var controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
+        controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
       } else {
-        var controller = self.controllerProvider(controllerName, dependencies);
+        controller = self.controllerProvider(controllerName, dependencies);
       }
       if (!isAsync) {
         return Q({});
