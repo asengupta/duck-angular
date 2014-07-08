@@ -24,9 +24,9 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
         });
       });
 
-      it("returns false for missing element", function() {
+      it("raises exception for missing element", function() {
         return duckDom.spread(function(dom, mvc) {
-          expect(dom.element('.kittens-rule').isVisible()).to.be.false;
+          expect(function() {dom.element('.kittens-rule').isVisible()}).to.throw("Element does not exist");
         });
       });
     });

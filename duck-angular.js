@@ -402,7 +402,10 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        return this.size() > 0 && !this.hasClass("ng-hide");
+        if(this.size() <=0){
+          throw(new Error("Element does not exist"));
+        }
+        return !this.hasClass("ng-hide");
       },
 
       isHidden: function () {
