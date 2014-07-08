@@ -64,13 +64,13 @@ Initialise the application container, like so:
 
 The withDependencies(...) call is optional, unless you want to inject some dependency which the controller does not use directly.
 
-The third parameter has the key **multipleControllers**. Unless specified, this is false. Setting this to true, allows us to inject dependencies not only into the top-level controller, but also on any nested controllers.
+The third parameter has the key `multipleControllers`. Unless specified, this is false. Setting this to true, allows us to inject dependencies not only into the top-level controller, but also on any nested controllers.
 
 ##ContainerBuilder API
 
 ###withDependencies()
 
-This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the **builder** object, so it can be chained, until **build()** is called.
+This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the `builder` object, so it can be chained, until `build()` is called.
 
 ###cacheTemplate()
 
@@ -92,7 +92,7 @@ This is specifically to prevent template load errors when we specify templateUrl
           });
     };
 
-Note that it is entirely possible for the declared **templateUrl** to be the same as the path to access it; however, it may be different if you're using a test runner like Karma, which could serve static assets from a different path. This also allows a cheap form of URL rewriting if the path to your template does not match the path it actually is served from, like in Karma.
+Note that it is entirely possible for the declared `templateUrl` to be the same as the path to access it; however, it may be different if you're using a test runner like Karma, which could serve static assets from a different path. This also allows a cheap form of URL rewriting if the path to your template does not match the path it actually is served from, like in Karma.
 
 
 ###build()
@@ -108,7 +108,7 @@ Assuming you have text.js somewhere, simply specify that and the baseUrl.
 
 This method returns a Container object, whose API is discussed below.
 
-The feature options object also supports setting the **multipleControllers** option, which controls whether you can inject dependencies only into the top-level controller, or into nested controllers as well. This is discussed in the notes under **domMvc()** and **mvc()**.
+The feature options object also supports setting the `multipleControllers` option, which controls whether you can inject dependencies only into the top-level controller, or into nested controllers as well. This is discussed in the notes under `domMvc()` and `mvc()`.
 
 The dependencies are injected using an overriding module which is constructed dynamically. This preserves the original module's dependencies.
 
@@ -140,19 +140,19 @@ This method sets up a controller and a view, with dependencies that you can inje
 
 ###Important Notes about mvc() and domMvc():
 
-The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, you need to set the **multipleControllers** key in the **featureOptions** parameter in the **build()** method to *true*, like so:
+The latest version of Duck-Angular has initial support for nested controllers. To allow independent injection for each controller, you need to set the `multipleControllers` key in the `featureOptions` parameter in the `build()` method to *true*, like so:
 
     var container = builder.withDependencies(appLevelDependencies).build("MyModuleName", myModule, { baseUrl: "baseUrl/for/Duck/dependencies", textPluginPath: "path/to/text.js", multipleControllers: true});
 
-####When **multipleControllers** is **false** or unspecified
-The structure of the **dependencies** parameter only supports injecting dependencies for the top-level controller, like so:
+####When `multipleControllers` is `false` or unspecified
+The structure of the `dependencies` parameter only supports injecting dependencies for the top-level controller, like so:
 
     var controllerDependencies = { 
       // Top-level controller dependencies
     };
 
-####When **multipleControllers** is **true**
-The structure of the **dependencies** parameter is different in this scenario. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
+####When `multipleControllers` is `true`
+The structure of the `dependencies` parameter is different in this scenario. If you have 3 controllers (one root, and 2 nested), your dependencies object will have this structure:
 
 
     var controllerDependencies = {controller1: { 
@@ -166,7 +166,7 @@ The structure of the **dependencies** parameter is different in this scenario. I
                               },
                              };
 
-You can still specify an optional $scope field directly inside **controllerDependencies**; this will become the scope of the root controller. This will be removed in future versions.
+You can still specify an optional $scope field directly inside `controllerDependencies`; this will become the scope of the root controller. This will be removed in future versions.
 
 ###controller()
 
@@ -189,7 +189,7 @@ If you're using this method, remember to use spread() on the promise, instead of
     };
 
 
-All the notes regarding **mvc()** apply here as well.
+All the notes regarding `mvc()` apply here as well.
 
 ###get()
 
