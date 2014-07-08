@@ -30,8 +30,9 @@ If you intend to set up Duck manually in an environment where RequireJS is not a
 * require.js
 * text.js
 * underscore.js
+* jquery.js
 
-If you are using RequireJS in your app, Duck will detect it and attempt to load "angular", "underscore", and "Q".
+If you are using RequireJS in your app, Duck will detect it and attempt to load "angular", "underscore", "jquery", and "Q".
 
 Your controller/service/object initialisation scripts need to have run before you use Duck-Angular. Put them in script tags, or load them using a script loader like RequireJS or Inject.
 If you're not using RequireJS in your app, see the example at: [Angular-Toy](https://github.com/kylehodgson/angular-toy). 
