@@ -68,6 +68,7 @@ The third parameter has the key `multipleControllers`. Unless specified, this is
 
 ##ContainerBuilder API
 
+<a name="withDependenciesSection"></a>
 ###withDependencies()
 
 This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the `builder` object, so it can be chained, until `build()` is called. The exception is when `cacheTemplate()` or `cacheTemplates()` is called, in which case it returns a promise with the `builder` object, which you can continue to chain as usual. See [cacheTemplate()](#cacheTemplateSection).
@@ -93,6 +94,7 @@ This is specifically to prevent template load errors when we specify templateUrl
           });
     };
 
+<a name="cacheTemplatesSection"></a>
 ###cacheTemplates(templateMap)
 
 If you're caching multiple templates, it's somewhat inconvenient to have to chain multiple promises for all the templates. This method lets you cache multiple templates, which you pass in as a map, keyed to the template URLs. The example below reproduces the relevant part of the single-template example above.
@@ -114,6 +116,7 @@ If you're caching multiple templates, it's somewhat inconvenient to have to chai
 Note that it is entirely possible for the declared `templateUrl` to be the same as the path to access it; however, it may be different if you're using a test runner like Karma, which could serve static assets from a different path. This also allows a cheap form of URL rewriting if the path to your template does not match the path it actually is served from, like in Karma.
 
 
+<a name="buildSection"></a>
 ###build(moduleName, module, featureOptions)
 
 This method will construct and return the Container. It takes in 3 parameters:
@@ -133,6 +136,7 @@ The dependencies are injected using an overriding module which is constructed dy
 
 ##Container API
 
+<a name="mvcSection"></a>
 ###mvc(controllerName, viewUrl, [dependencies], [options])
 
 This method sets up a controller and a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns an object which contains the controller, the view, and the scope.
@@ -157,6 +161,7 @@ This method sets up a controller and a view, with dependencies that you can inje
     // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
 
+<a name="controllerSection"></a>
 ###controller(controllerName, [dependencies], [isAsync], [controllerLoadedPromise])
 
 This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
@@ -168,6 +173,7 @@ This method sets up only a controller without a view, with dependencies that you
     // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called `loaded`.
 
+<a name="domMvcSection"></a>
 ###domMvc(controllerName, viewURL, [controllerDependencies], [options])
 This is a convenience wrapper over the mvc() method. It also constructs a new DuckDOM object (discussed in the DuckDOM Interaction API), and returns both the DuckDOM object, and the MVC object, in that order.
 
@@ -208,12 +214,14 @@ The structure of the `dependencies` parameter is different in this scenario. If 
 
 You can still specify an optional $scope field directly inside `controllerDependencies`; this will become the scope of the root controller. This will be removed in future versions.
 
+<a name="getSection"></a>
 ###get(dependencyName)
 
 This method lets you retrieve any wired Angular dependency by name, like so:
 
     container.get("$http")
 
+<a name="addViewProcessorSection"></a>
 ###addViewProcessor(function(viewHTML) {...})
 This lets you add a function which gives you the opportunity to do some preprocessing on the top-level view HTML when it's initially loaded.
 
@@ -234,6 +242,7 @@ This lets you add a function which gives you the opportunity to do some preproce
           });
     };
 
+<a name="addViewProcessorsSection"></a>
 ###addViewProcessors([function(html) {...}, function(html) {...}, ...])
 This is simply a convenience function for passing in an array of view processors.
 
@@ -241,6 +250,7 @@ This is simply a convenience function for passing in an array of view processors
 
 The DuckDOM/DuckUIInteraction API lets you interact with elements in your constructed view. This only makes sense when you've set up your context using the Container.mvc() method.
 
+<a name="elementSection"></a>
 ###element(selector)
 
 This lets you access any element inside the view using standard jQuery selectors/semantics.
@@ -255,14 +265,17 @@ This lets you access any element inside the view using standard jQuery selectors
       expect(dom.element("#someElement").isHidden()).to.eq(true);
     });
 
+<a name="applySection"></a>
 ###apply()
 
 This lets you call Angular's $scope.$apply() method in a safe fashion.
 
+<a name="onSection"></a>
 ###on(selector, event)
 
 This lets you create a promise for an event on an element specified by the selector. This allows you to use promise notation without having to resort to callback mechanics.
 
+<a name="interactWithSection"></a>
 ###interactWith(selector, [value], [promise])
 
 This lets you interact with elements whose controller behaviour is known to be synchronous. Note that $scope.$apply() is automatically invoked after each interaction, so there is no need to call it yourself.
@@ -293,6 +306,7 @@ The interactWith() method can also take a third parameter `promise`, which it re
           // More assertions
         });
 
+<a name="withWaitForSection"></a>
 ###with(selector, [value]).waitFor(object, objectFunctionStringName)
 
 This call lets you interact with elements whose controller behaviour is known to be asynchronous. In such cases, you want to wait for the asynchronous behaviour to complete before proceeding with test assertions. This method assumes that the asynchronous logic returns a promise whose fulfilment indicates the completion of the user action.
@@ -313,6 +327,7 @@ This call lets you interact with elements whose controller behaviour is known to
 
 The above example assumes that there is a method refreshData() present on the scope which returns a promise to indicate completion of the asynchronous code. The rest of the assertions will only continue after this promise as been fulfilled.
 
+<a name="triggerSection"></a>
 ###trigger(selector, event)
 
 This is merely a wrapper over jQuery's trigger() method, for firing events on elements. If you're using the interaction API, you merely need to write something like this:
