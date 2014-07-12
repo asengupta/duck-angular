@@ -66,6 +66,46 @@ The withDependencies(...) call is optional, unless you want to inject some depen
 
 The third parameter has the key `multipleControllers`. Unless specified, this is false. Setting this to true, allows us to inject dependencies not only into the top-level controller, but also on any nested controllers.
 
+###General Setup and Simpler Setup
+
+The fragment below is the most general form of a Duck-Angular setup. Note that most of the parameters are optional. The only ones that are absolutely needed are `module` and `moduleName`. If you're not using RequireJS, you'll need to specify `baseUrl` and `textPluginPath` as well.
+
+    var duckFactory = duckCtor(_, angular, Q, $);
+    var builder = duckFactory.ContainerBuilder;
+    var DuckDOM = duckFactory.DOM;
+    var DuckUIInteraction = duckFactory.UIInteraction;
+
+    return builder.withDependencies(appLevelDependencies)
+        .cacheTemplates(module, templatesToCache)
+        .then(function (bldr) {
+          return bldr.build(moduleName, module,
+              {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text", multipleControllers: isMultipleControllerSupportEnabled});
+        })
+        .then(function (container) {
+          container.addViewProcessor(function(viewHTML) { /* Processor code */ });
+          return container.domMvc("controllerName", "path/to/view", controllerDependencies);
+          .then(function(dom, mvc) {
+            // Test code
+            });
+        });
+
+Accordingly, the simplest form would look like something below:
+
+    var duckFactory = duckCtor(_, angular, Q, $);
+    var builder = duckFactory.ContainerBuilder;
+    var DuckDOM = duckFactory.DOM;
+    var DuckUIInteraction = duckFactory.UIInteraction;
+
+    return builder.build(moduleName, module,
+              {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text");
+        })
+        .then(function (container) {
+          return container.domMvc("controllerName", "path/to/view", controllerDependencies)
+        .then(function(dom, mvc) {
+          // Test code
+          });
+        });
+
 ##ContainerBuilder API
 
 <a name="withDependenciesSection"></a>
