@@ -29,7 +29,12 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
           expect(function() {dom.element('.kittens-rule').isVisible()}).to.throw("Element does not exist");
         });
       });
+
+      it("raises exception for missing element", function() {
+        return duckDom.spread(function(dom, mvc) {
+          expect(function() {dom.element('.kittens-rule').isHidden()}).to.throw("Element does not exist");
+        });
+      });
     });
   });
-
 });
