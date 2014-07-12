@@ -70,9 +70,9 @@ The third parameter has the key `multipleControllers`. Unless specified, this is
 
 ###withDependencies()
 
-This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the `builder` object, so it can be chained, until `build()` is called.
+This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the `builder` object, so it can be chained, until `build()` is called. The exception is when `cacheTemplate()` or `cacheTemplates()` is called, in which case it returns a promise with the `builder` object, which you can continue to chain as usual. See [cacheTemplate()](#cacheTemplateSection).
 
-###cacheTemplate()
+<a name="cacheTemplateSection"></a>###cacheTemplate()
 
 This is specifically to prevent template load errors when we specify templateUrl values for directives. This preloads the templateUrl into Angular's template cache. Note that this returns a promise. You will need to wait for the promise to be fulfilled, either right after the point of the call, or before the start of the test. Here's an example of how you could do this:
 
@@ -86,8 +86,26 @@ This is specifically to prevent template load errors when we specify templateUrl
       var builder = duckFactory.ContainerBuilder;
       return builder.withDependencies(appLevelDependencies).
           cacheTemplate(moduleUnderTest, "declared/path/to/directive/template", "actual/path/to/template").
-          then(function () {
-            return builder.build("Cinnamon", cinnamon,
+          then(function (bldr) {
+            return bldr.build("Cinnamon", cinnamon,
+                {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text"});
+          });
+    };
+
+###cacheTemplates()
+
+If you're caching multiple templates, it's somewhat inconvenient to have to chain multiple promises for all the templates. This method lets you cache multiple templates, which you pass in as a map, keyed to the template URLs. The example below reproduces the relevant part of the single-template example above.
+
+     
+    var buildContainer = function (appLevelDependencies) {
+      var builder = duckFactory.ContainerBuilder;
+      return builder.withDependencies(appLevelDependencies).
+          cacheTemplates(moduleUnderTest, {
+                                            "declared/path/to/directive/templateOne": "actual/path/to/template/One",
+                                            "declared/path/to/directive/templateTwo": "actual/path/to/template/Two"
+                                         }).
+          then(function (bldr) {
+            return bldr.build("Cinnamon", cinnamon,
                 {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text"});
           });
     };
@@ -114,7 +132,7 @@ The dependencies are injected using an overriding module which is constructed dy
 
 ##Container API
 
-###mvc()
+###mvc(controllerName, viewUrl, [dependencies], [options])
 
 This method sets up a controller and a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns an object which contains the controller, the view, and the scope.
 
@@ -137,6 +155,27 @@ This method sets up a controller and a view, with dependencies that you can inje
     // dontWait is optional, and has a default value of false. Set it to true, if you do not want to wait for nested ng-include partial resolution.
     // async is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
     // controllerLoadedPromise is required if async is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
+
+###controller(controllerName, [dependencies], [isAsync], [controllerLoadedPromise])
+
+This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
+
+    return controller(controllerName, dependencies, isAsync, controllerLoadedPromise).then(function(controller) {
+      ...
+    });
+
+    // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
+    // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called `loaded`.
+
+###domMvc(controllerName, viewURL, [controllerDependencies], [options])
+This is a convenience wrapper over the mvc() method. It also constructs a new DuckDOM object (discussed in the DuckDOM Interaction API), and returns both the DuckDOM object, and the MVC object, in that order.
+
+If you're using this method, remember to use spread() on the promise, instead of then() to spread the return value over the argument list, like so:
+
+    return container.domMvc(controllerName, viewUrl, dependencies, options).spread(function(dom, mvc) {
+      ...
+    };
+
 
 ###Important Notes about mvc() and domMvc():
 
@@ -168,40 +207,40 @@ The structure of the `dependencies` parameter is different in this scenario. If 
 
 You can still specify an optional $scope field directly inside `controllerDependencies`; this will become the scope of the root controller. This will be removed in future versions.
 
-###controller()
-
-This method sets up only a controller without a view, with dependencies that you can inject. Any dependencies not overridden are fulfilled using the application's default dependencies. It returns the constructed controller.
-
-    return controller(controllerName, dependencies, isAsync, controllerLoadedPromise).then(function(controller) {
-      ...
-    });
-
-    // isAsync is optional, and has a default value of false. Set it to true, if your controller has to run asynchronous code to finish initialising. If asynchronous initialisation happens, Duck expects your controller to expose a promise whose fulfilment signals completion of controller setup.
-    // controllerLoadedPromise is required if isAsync is true. If not provided in this situation, it will assume the controller exposes promise called loaded.
-
-###domMvc()
-This is a convenience wrapper over the mvc() method. It also constructs a new DuckDOM object (discussed in the DuckDOM Interaction API), and returns both the DuckDOM object, and the MVC object, in that order.
-
-If you're using this method, remember to use spread() on the promise, instead of then() to spread the return value over the argument list, like so:
-
-    return container.domMvc(controllerName, viewUrl, dependencies, options).spread(function(dom, mvc) {
-      ...
-    };
-
-
-All the notes regarding `mvc()` apply here as well.
-
-###get()
+###get(dependencyName)
 
 This method lets you retrieve any wired Angular dependency by name, like so:
 
     container.get("$http")
 
+###addViewProcessor(function(viewHTML) {...})
+This lets you add a function which gives you the opportunity to do some preprocessing on the top-level view HTML when it's initially loaded.
+
+    var buildContainer = function (appLevelDependencies, controllerDependencies) {
+      var builder = duckFactory.ContainerBuilder;
+      return builder.withDependencies(appLevelDependencies).
+          cacheTemplates(moduleUnderTest, {
+                                            "declared/path/to/directive/template/One": "actual/path/to/template/One",
+                                            "declared/path/to/directive/template/Two": "actual/path/to/template/Two"
+                                         })
+          .then(function (bldr) {
+            return bldr.build("Cinnamon", cinnamon,
+                {baseUrl: "/base", textPluginPath: "src/javascript_tests/lib/text"});
+          })
+          .then(function (container) {
+            container.addViewProcessor(function(viewHTML) { /* Processor code */ });
+            return container.domMvc("controllerName", "path/to/view", controllerDependencies);
+          });
+    };
+
+###addViewProcessors([function(html) {...}, function(html) {...}, ...])
+This is simply a convenience function for passing in an array of view processors.
+
 ##Interaction API
 
 The DuckDOM/DuckUIInteraction API lets you interact with elements in your constructed view. This only makes sense when you've set up your context using the Container.mvc() method.
 
-###element()
+###element(selector)
 
 This lets you access any element inside the view using standard jQuery selectors/semantics.
 
@@ -219,7 +258,11 @@ This lets you access any element inside the view using standard jQuery selectors
 
 This lets you call Angular's $scope.$apply() method in a safe fashion.
 
-###interactWith()
+###on(selector, event)
+
+This lets you create a promise for an event on an element specified by the selector. This allows you to use promise notation without having to resort to callback mechanics.
+
+###interactWith(selector, [value], [promise])
 
 This lets you interact with elements whose controller behaviour is known to be synchronous. Note that $scope.$apply() is automatically invoked after each interaction, so there is no need to call it yourself.
 
@@ -241,6 +284,13 @@ The interactWith() method is 'overloaded' to understand what type of element you
     dom.interactWith("#someDropdown", 2);
     dom.interactWith("#textField", "Some Text");
     dom.interactWith("#someRadio", true);
+
+The interactWith() method can also take a third parameter `promise`, which it returns untouched, such that subsequent code can be chained asynchronously if needed. For example:
+
+      return dom.interactWith("#emailAddress", "mojo@mojo.com", dom.on("#someElement", "someEvent"))
+        .then(function() {
+          // More assertions
+        });
 
 ###with().waitFor()
 

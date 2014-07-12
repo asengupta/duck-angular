@@ -150,6 +150,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
       var controller;
+      dependencies = dependencies || {};
       if (multipleControllersFeature(featureOptions)) {
         hackDependencies = dependencies;
         hackDependencies.rootControllerName = controllerName;
@@ -179,6 +180,7 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.domMvc = function (controllerName, viewUrl, dependencies, options) {
+      dependencies = dependencies || {};
       return self.mvc(controllerName, viewUrl, dependencies,
           options).then(function (scopeViewController) {
             var dom = new DuckDOM(scopeViewController.view, scopeViewController.scope);
