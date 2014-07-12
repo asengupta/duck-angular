@@ -72,7 +72,8 @@ The third parameter has the key `multipleControllers`. Unless specified, this is
 
 This method allows you to specify module-level dependencies, i.e., dependencies which will be overridden for the entire module. The dependencies are specified as simple key-value pairs, with the key reflecting the actual name of the Angular dependency. If the value is an object, it will be specified configured in Angular's DI via a provider. If the value is a function, it will be executed with two parameters, $provide and the module. This lets the developer override the dependency in whatever fashion is most appropriate. The function returns the `builder` object, so it can be chained, until `build()` is called. The exception is when `cacheTemplate()` or `cacheTemplates()` is called, in which case it returns a promise with the `builder` object, which you can continue to chain as usual. See [cacheTemplate()](#cacheTemplateSection).
 
-<a name="cacheTemplateSection"></a>###cacheTemplate()
+<a name="cacheTemplateSection"></a>
+###cacheTemplate(moduleName, declaredPathToDirectiveTemplate, actualPathToDirectiveTemplate)
 
 This is specifically to prevent template load errors when we specify templateUrl values for directives. This preloads the templateUrl into Angular's template cache. Note that this returns a promise. You will need to wait for the promise to be fulfilled, either right after the point of the call, or before the start of the test. Here's an example of how you could do this:
 
@@ -92,7 +93,7 @@ This is specifically to prevent template load errors when we specify templateUrl
           });
     };
 
-###cacheTemplates()
+###cacheTemplates(templateMap)
 
 If you're caching multiple templates, it's somewhat inconvenient to have to chain multiple promises for all the templates. This method lets you cache multiple templates, which you pass in as a map, keyed to the template URLs. The example below reproduces the relevant part of the single-template example above.
 
@@ -113,7 +114,7 @@ If you're caching multiple templates, it's somewhat inconvenient to have to chai
 Note that it is entirely possible for the declared `templateUrl` to be the same as the path to access it; however, it may be different if you're using a test runner like Karma, which could serve static assets from a different path. This also allows a cheap form of URL rewriting if the path to your template does not match the path it actually is served from, like in Karma.
 
 
-###build()
+###build(moduleName, module, featureOptions)
 
 This method will construct and return the Container. It takes in 3 parameters:
 * Module name: The module name will be the module under test.
@@ -292,7 +293,7 @@ The interactWith() method can also take a third parameter `promise`, which it re
           // More assertions
         });
 
-###with().waitFor()
+###with(selector, [value]).waitFor(object, objectFunctionStringName)
 
 This call lets you interact with elements whose controller behaviour is known to be asynchronous. In such cases, you want to wait for the asynchronous behaviour to complete before proceeding with test assertions. This method assumes that the asynchronous logic returns a promise whose fulfilment indicates the completion of the user action.
 
@@ -312,7 +313,7 @@ This call lets you interact with elements whose controller behaviour is known to
 
 The above example assumes that there is a method refreshData() present on the scope which returns a promise to indicate completion of the asynchronous code. The rest of the assertions will only continue after this promise as been fulfilled.
 
-###trigger()
+###trigger(selector, event)
 
 This is merely a wrapper over jQuery's trigger() method, for firing events on elements. If you're using the interaction API, you merely need to write something like this:
 
