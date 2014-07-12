@@ -26,6 +26,17 @@ var duckCtor = function (_, angular, Q, $) {
     self.controllerProvider = self.injector.get("$controller");
     self.rootScope = self.injector.get("$rootScope");
     self.compileService = self.injector.get("$compile");
+    self.viewProcessors = [];
+
+    this.addViewProcessor = function(viewProcessor) {
+      self.viewProcessors.push(viewProcessor);
+    };
+
+    this.addViewProcessors = function(viewProcessors) {
+      _.each(viewProcessors, function(viewProcessor) {
+        self.viewProcessors.push(viewProcessor);
+      });
+    };
 
     this.newScope = function () {
       return self.rootScope.$new();
@@ -58,8 +69,15 @@ var duckCtor = function (_, angular, Q, $) {
         });
       }
 
+      var includedTemplateName = function(elementWithNgInclude) {
+        var e = angular.element(elementWithNgInclude);
+        if (e.attr("src"))
+          return e.attr("src").replace("'", "").replace("'", "");
+        return e.attr("ng-include").replace("'", "").replace("'", "");
+      };
+
       var promises = _.map(includes, function (include) {
-        var includeSource = angular.element(include).attr("src").replace("'", "").replace("'", "");
+        var includeSource = includedTemplateName(include);
         var includePromise = requireQ(["text!" + includeSource]);
         return includePromise.spread(function (sourceText) {
           var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
@@ -105,12 +123,20 @@ var duckCtor = function (_, angular, Q, $) {
       }
     };
 
+    var processView = function(viewHTML) {
+      _.each(self.viewProcessors, function(viewProcessor) {
+        viewHTML = viewProcessor(viewHTML);
+      });
+      return viewHTML;
+    };
+
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
       require(["text!" + viewUrl], function (viewHTML) {
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
         if (!multipleControllersFeature(featureOptions))
           viewHTML = viewHTML.replace("ng-controller", "no-controller");
+        viewHTML = processView(viewHTML);
         viewHTML = viewHTML.replace("ng-app", "no-app");
         self.compileTemplate(viewHTML, scope, preRenderBlock).then(function (compiledTemplate) {
           deferred.resolve(compiledTemplate);
@@ -209,8 +235,20 @@ var duckCtor = function (_, angular, Q, $) {
         app.run(function ($templateCache) {
           $templateCache.put(templateUrl, templateText);
         });
+        return self;
       });
     },
+
+    cacheTemplates: function(app, templateMap) {
+      if (_.isEmpty(templateMap)) return Q(this);
+      var self = this;
+      return Q.all(_.map(_.pairs(templateMap), function(templateKeyPair) {
+        return self.cacheTemplate(app, templateKeyPair[0], templateKeyPair[1]);
+      })).spread(function(bldr) {
+        return bldr;
+      });
+    },
+
     withDependencies: function (appLevelDependencies) {
       this.dependencies = appLevelDependencies;
       return this;
@@ -348,7 +386,15 @@ var duckCtor = function (_, angular, Q, $) {
       elements.trigger(event);
     };
 
-    this.interactWith = function (selector, value) {
+    this.on = function(selector, ev) {
+      var defer = Q.defer();
+      self.element(selector).on(ev, function() {
+        defer.resolve();
+      });
+      return defer.promise;
+    };
+
+    this.interactWith = function (selector, value, promise) {
       var elements = angular.element(selector, view);
 
       _.each(elements, function (element) {
@@ -366,8 +412,10 @@ var duckCtor = function (_, angular, Q, $) {
           var inputElement = angular.element("input[type='submit']");
           inputElement.submit();
         }
-        else if (element.nodeName === "INPUT" &&
-                 (element.type === "button" || element.type === "submit")) {
+        else if (element.nodeName === "INPUT" && element.type === "button") {
+          elements.trigger("click");
+        }
+        else if (element.nodeName === "INPUT" && element.type === "submit") {
           if (elements.submit) elements.submit();
           elements.trigger("click");
         }
@@ -393,7 +441,9 @@ var duckCtor = function (_, angular, Q, $) {
         }
       });
       applySafely();
-      return self;
+      if (promise) {
+        return promise;
+      }
     };
 
     this.apply = function () {
@@ -402,9 +452,6 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        if(this.size() <=0){
-          throw(new Error("Element does not exist"));
-        }
         return !this.hasClass("ng-hide");
       },
 
