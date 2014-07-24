@@ -23,6 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+var logDebug = function(text) {
+  if (DUCK_DEBUG)
+    console.log("[Duck DEBUG] " + text);
+};
+
 // Adapted from https://github.com/asengupta/requirejs-q
 function requireQ(modules) {
   var deferred = Q.defer();
@@ -34,11 +39,12 @@ function requireQ(modules) {
 
 var duckCtor = function (_, angular, Q, $) {
   var hackDependencies = {};
-  var originalControllerProvider;
 
   var Container = function Container(injector, app, featureOptions) {
     featureOptions = featureOptions || {}
+    logDebug("Feature Options is : " + JSON.stringify(featureOptions));
     if (featureOptions.baseUrl && featureOptions.textPluginPath) {
+      logDebug("Configuring RequireJS with : " + featureOptions.baseUrl + ", " + featureOptions.textPluginPath);
       require.config({
         baseUrl: featureOptions.baseUrl,
         paths: { text: featureOptions.textPluginPath}
@@ -59,6 +65,7 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.addViewProcessors = function(viewProcessors) {
       _.each(viewProcessors, function(viewProcessor) {
+        logDebug("Adding viewProcessor: " + viewProcessor);
         self.viewProcessors.push(viewProcessor);
       });
     };
@@ -119,6 +126,7 @@ var duckCtor = function (_, angular, Q, $) {
     this.compileTemplate = function (viewHTML, scope, preRenderBlock) {
       var wrappingElement = self.removeElementsBelongingToDifferentScope(self.createElement(viewHTML));
       if (preRenderBlock) {
+        logDebug("Running pre-render block with scope: " + scope);
         preRenderBlock(self.injector, scope);
       }
       self.allPartialsLoadedDeferred = Q.defer();
@@ -126,16 +134,20 @@ var duckCtor = function (_, angular, Q, $) {
       return c.then(function (numberOfPartials) {
         self.numberOfPartials = numberOfPartials - 1;
         if (self.options.dontWait || !self.numberOfPartials || self.numberOfPartials === 0) {
+          logDebug("All partials have been loaded.");
           self.allPartialsLoadedDeferred.resolve();
         }
+        logDebug("Number of partials = " + self.numberOfPartials);
         var counter = 0;
         scope.$on("$includeContentLoaded", function () {
+          logDebug("Loading a partial.");
           counter++;
           if (counter === self.numberOfPartials) {
             self.allPartialsLoadedDeferred.resolve();
           }
         });
       }).then(function () {
+        logDebug("Binding template to scope");
         var compiledTemplate = self.compileService(wrappingElement)(scope);
         applySafely(scope);
         return compiledTemplate;
@@ -144,12 +156,14 @@ var duckCtor = function (_, angular, Q, $) {
 
     var applySafely = function (scope) {
       if (!scope.$$phase) {
+        logDebug("Running $digest loop");
         scope.$apply();
       }
     };
 
     var processView = function(viewHTML) {
       _.each(self.viewProcessors, function(viewProcessor) {
+        logDebug("Processing view through " + viewProcessor);
         viewHTML = viewProcessor(viewHTML);
       });
       return viewHTML;
@@ -157,10 +171,16 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
+      logDebug("Loading " + viewUrl);
       require(["text!" + viewUrl], function (viewHTML) {
+        logDebug("Loaded " + viewUrl);
         // HACK to make sure that ng-controller directives don't cause template to be eaten up
-        if (!multipleControllersFeature(featureOptions))
+        if (!multipleControllersFeature(featureOptions)) {
+          logDebug("Multiple controller support not enabled.");
           viewHTML = viewHTML.replace("ng-controller", "no-controller");
+        } else {
+          logDebug("Multiple controller support is enabled.");
+        }
         viewHTML = processView(viewHTML);
         viewHTML = viewHTML.replace("ng-app", "no-app");
         self.compileTemplate(viewHTML, scope, preRenderBlock).then(function (compiledTemplate) {
@@ -174,9 +194,11 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.controller = function (controllerName, dependencies, isAsync, controllerLoadedPromise) {
+      logDebug("Building controller");
       var controller;
       dependencies = dependencies || {};
       if (multipleControllersFeature(featureOptions)) {
+        logDebug("Multiple controller support enabled, dependencies are: " + dependencies);
         hackDependencies = dependencies;
         hackDependencies.rootControllerName = controllerName;
         controller = self.controllerProvider(controllerName, { $scope: dependencies.$scope });
@@ -184,12 +206,16 @@ var duckCtor = function (_, angular, Q, $) {
         controller = self.controllerProvider(controllerName, dependencies);
       }
       if (!isAsync) {
+        logDebug("Async convention disabled, resolving early.");
         return Q({});
       }
+      logDebug("Async support enabled, searching for controller loaded promise");
       var deferred = Q.defer();
       controllerLoadedPromise =
       controllerLoadedPromise ? controllerLoadedPromise(controller) : controller.loaded;
+      logDebug("Does controller loaded promise exist ? " + controllerLoadedPromise !== null);
       controllerLoadedPromise.then(function () {
+        logDebug("Controller is loaded, resolving");
         deferred.resolve(controller);
       });
       return deferred.promise;
@@ -219,7 +245,9 @@ var duckCtor = function (_, angular, Q, $) {
       self.options.preRenderHook = self.options.preRenderHook || function () {};
       dependencies = dependencies || {};
       var scope = self.newScope();
+      logDebug("START Pre-bind hook");
       self.options.preBindHook(scope);
+      logDebug("STOP Pre-bind hook");
       dependencies.$scope = _.extend(scope, dependencies.$scope || {});
       var controller = this.controller(controllerName, dependencies, self.options.async || false,
           self.options.controllerLoadedPromise);
@@ -260,6 +288,7 @@ var duckCtor = function (_, angular, Q, $) {
       var self = this;
       return self.getQ(realTemplateUrl).then(function (templateText) {
         app.run(function ($templateCache) {
+          logDebug("Caching template with URL " + templateUrl);
           $templateCache.put(templateUrl, templateText);
         });
         return self;
@@ -296,18 +325,22 @@ var duckCtor = function (_, angular, Q, $) {
           $provide.decorator("$controller", function($delegate) {
             return function(ctrlName, deps) {
               if (ctrlName === hackDependencies.rootControllerName) {
+                logDebug("Resolving root controller " + ctrlName);
+
                 if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies.$scope)}));
                 return $delegate(ctrlName, {$scope: _.extend(deps.$scope, hackDependencies.$scope)})
               }
+              logDebug("Resolving controller " + ctrlName);
               if (hackDependencies[ctrlName]) return $delegate(ctrlName, _.extend({}, deps, hackDependencies[ctrlName], {$scope: _.extend(deps.$scope, hackDependencies[ctrlName].$scope)}));
               return $delegate(ctrlName, deps);
             };
           });
         }
 
-
         _.each(_.keys(self.dependencies), function (appDependencyKey) {
           if (typeof self.dependencies[appDependencyKey] === "function") {
+            logDebug("Using function to resolve dependency: " + self.dependencies[appDependencyKey]);
+
             var v = self.dependencies[appDependencyKey]($provide, mockModule);
           } else {
             $provide.provider(appDependencyKey, function () {
@@ -399,6 +432,11 @@ var duckCtor = function (_, angular, Q, $) {
       applySafely();
     };
 
+    this.broadcast = function(ev, args) {
+      scope.$broadcast(ev, args);
+      applySafely();
+    };
+
     this.applyAndDo = function (command) {
       var deferred = Q.defer();
       scope.$apply(function () {
@@ -471,6 +509,7 @@ var duckCtor = function (_, angular, Q, $) {
       if (promise) {
         return promise;
       }
+      return Q(self);
     };
 
     this.apply = function () {
