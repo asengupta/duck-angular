@@ -310,13 +310,26 @@ var duckCtor = function (_, angular, Q, $) {
 
     cacheTemplate: function (app, templateUrl, realTemplateUrl) {
       var self = this;
-      return self.getQ(realTemplateUrl).then(function (templateText) {
+
+      function putTemplateIntoCache(templateText){
         app.run(function ($templateCache) {
           logDebug("Caching template with URL " + templateUrl);
           $templateCache.put(templateUrl, templateText);
         });
         return self;
-      });
+      }
+
+      function isHtml(val){
+        return /<[a-z][\s\S]*>/i.test(val);
+      }
+
+      if(isHtml(realTemplateUrl)){
+        // Stub the template with an html string
+        return Q.when(realTemplateUrl).then(putTemplateIntoCache);
+      } else {
+        // Otherwise get real file into the cache
+        return self.getQ(realTemplateUrl).then(putTemplateIntoCache);
+      }
     },
 
     cacheTemplates: function(app, templateMap) {
