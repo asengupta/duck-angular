@@ -169,6 +169,23 @@ var duckCtor = function (_, angular, Q, $) {
       return viewHTML;
     };
 
+    var stubScope = function(duckScope, mockScope){
+      if(mockScope.$parent) {
+        mockScope.$parent = stubScope(duckScope.$parent, mockScope.$parent);
+      }
+      mockScope = _.extend(duckScope, mockScope || {});
+      return mockScope;
+    };
+
+    var stubScopes = function(duckScope, dependencies, controllerName){
+      if(multipleControllersFeature(featureOptions)){
+        dependencies[controllerName].$scope = stubScope(duckScope, dependencies[controllerName].$scope);
+        return dependencies;
+      } else {
+        return stubScope(duckScope, dependencies.$scope);
+      }
+    };
+
     this.view = function (viewUrl, scope, preRenderBlock) {
       var deferred = Q.defer();
       logDebug("Loading " + viewUrl);
@@ -232,8 +249,8 @@ var duckCtor = function (_, angular, Q, $) {
 
     this.domMvc = function (controllerName, viewUrl, dependencies, options) {
       dependencies = dependencies || {};
-      return self.mvc(controllerName, viewUrl, dependencies,
-          options).then(function (scopeViewController) {
+      return self.mvc(controllerName, viewUrl, dependencies, options)
+          .then(function (scopeViewController) {
             var dom = new DuckDOM(scopeViewController.view, scopeViewController.scope);
             return [dom, scopeViewController];
           });
@@ -248,7 +265,14 @@ var duckCtor = function (_, angular, Q, $) {
       logDebug("START Pre-bind hook");
       self.options.preBindHook(scope);
       logDebug("STOP Pre-bind hook");
-      dependencies.$scope = _.extend(scope, dependencies.$scope || {});
+
+      // Mojo, we wrote a function that more thoroughly stubs out $scope.$parent recursively
+      if(multipleControllersFeature(featureOptions)){
+        dependencies = stubScopes(scope, dependencies, controllerName);
+      } else if(dependencies.$scope){
+        dependencies.$scope = stubScopes(scope, dependencies, controllerName);
+      }
+      
       var controller = this.controller(controllerName, dependencies, self.options.async || false,
           self.options.controllerLoadedPromise);
       var template = this.view(viewUrl, scope, self.options.preRenderHook);
@@ -286,13 +310,26 @@ var duckCtor = function (_, angular, Q, $) {
 
     cacheTemplate: function (app, templateUrl, realTemplateUrl) {
       var self = this;
-      return self.getQ(realTemplateUrl).then(function (templateText) {
+
+      function putTemplateIntoCache(templateText){
         app.run(function ($templateCache) {
           logDebug("Caching template with URL " + templateUrl);
           $templateCache.put(templateUrl, templateText);
         });
         return self;
-      });
+      }
+
+      function isHtml(val){
+        return /<[a-z][\s\S]*>/i.test(val);
+      }
+
+      if(isHtml(realTemplateUrl)){
+        // Stub the template with an html string
+        return Q.when(realTemplateUrl).then(putTemplateIntoCache);
+      } else {
+        // Otherwise get real file into the cache
+        return self.getQ(realTemplateUrl).then(putTemplateIntoCache);
+      }
     },
 
     cacheTemplates: function(app, templateMap) {
@@ -460,7 +497,12 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     this.interactWith = function (selector, value, promise) {
-      var elements = angular.element(selector, view);
+
+      if(selector.scope && typeof selector.scope == "function"){
+        var elements = selector;
+      } else {
+        var elements = angular.element(selector, view);
+      }
 
       _.each(elements, function (element) {
         if (element.nodeName === "TEXTAREA" || (element.nodeName === "INPUT" &&
@@ -501,7 +543,7 @@ var duckCtor = function (_, angular, Q, $) {
           elements.prop("selectedIndex", value);
           elements.trigger("change");
         }
-        else if (element.nodeName === "A" || element.nodeName === "BUTTON") {
+        else if (element.nodeName === "A" || element.nodeName === "BUTTON" || element.getAttribute("ng-click") != undefined) {
           elements.click();
         }
       });
@@ -539,13 +581,25 @@ var duckCtor = function (_, angular, Q, $) {
       },
       isEnabled: function() {
         return !this.isDisabled();
+      },
+      isRemoved: function() {
+        return !$.contains(view[0], this[0]);
+      },
+      find: function(){
+        var elements = this.$find.apply(this, arguments);
+        return extendElementWithDuckMethods(elements);
       }
     };
 
     this.element = function (selector) {
       var element = angular.element(selector, view);
-      return  _.extend(element, duckElement);
+      return extendElementWithDuckMethods(element);
     };
+
+    function extendElementWithDuckMethods(element){
+      element.$find = element.find;
+      return  _.extend(element, duckElement);
+    }
   };
   return { Container: Container, UIInteraction: DuckUIInteraction, DOM: DuckDOM, ContainerBuilder: ContainerBuilder };
 };
