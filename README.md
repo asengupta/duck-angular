@@ -3,8 +3,8 @@ duck-angular
 
 Guides to use this are at:
 
-* [Part One](http://avishek.net/blog/?p=1202)
-* [Part Two](http://avishek.net/blog/?p=1188)
+* [Part One](http://avishek.net/blog/?p=1188)
+* [Part Two](http://avishek.net/blog/?p=1202)
 * [Part Three](http://avishek.net/blog/?p=1225)
 * [Part Four](http://avishek.net/blog/?p=1239)
 * [Part Five: Testing Directives](http://avishek.net/blog/?p=1489)
