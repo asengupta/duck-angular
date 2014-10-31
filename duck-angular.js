@@ -29,7 +29,7 @@ var logDebug = function(text) {
 };
 
 // Adapted from https://github.com/asengupta/requirejs-q
-function requireQ(modules) {
+function requireQ(modules, Q) {
   var deferred = Q.defer();
   require(modules, function () {
     deferred.resolve(arguments);
@@ -110,7 +110,7 @@ var duckCtor = function (_, angular, Q, $) {
 
       var promises = _.map(includes, function (include) {
         var includeSource = includedTemplateName(include);
-        var includePromise = requireQ(["text!" + includeSource]);
+        var includePromise = requireQ(["text!" + includeSource], Q);
         return includePromise.spread(function (sourceText) {
           var child = self.removeElementsBelongingToDifferentScope(self.createElement(sourceText));
           return num(child);
