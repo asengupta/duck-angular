@@ -560,14 +560,14 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        if(this.size() <=0){
-          throw(new Error("Element does not exist"));
-        }
-        return !this.hasClass("ng-hide");
+        return !this.isHidden();
       },
 
       isHidden: function () {
-        return !this.isVisible();
+        if(this.size() <=0){
+          throw(new Error("Element does not exist"));
+        }
+        return this.hasClass("ng-hide") || this.css("display") === "none" || this.parent().css("display") === "none";
       },
       isFocused: function () {
         var deferred = Q.defer();

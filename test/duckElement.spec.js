@@ -23,6 +23,18 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
         });
       });
 
+      it("returns false for hidden css elements", function() {
+        return duckDom.spread(function(dom, mvc) {
+          expect(dom.element('#css-hidden-element').isVisible()).to.be.false;
+        });
+      });
+
+      it("returns false for hidden parent css elements", function() {
+        return duckDom.spread(function(dom, mvc) {
+          expect(dom.element('#css-child-hidden-element').isVisible()).to.be.false;
+        });
+      });
+
       it("raises exception for missing element", function() {
         return duckDom.spread(function(dom, mvc) {
           expect(function() {dom.element('.kittens-rule').isVisible()}).to.throw("Element does not exist");
