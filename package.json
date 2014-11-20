@@ -18,6 +18,9 @@
     "jquery": "",
     "q": "v1",
     "underscore": "",
-    "text": "requirejs/text"
+    "requirejs-text": ""
+  },
+  "scripts": {
+    "test": "node node_modules/karma/bin/karma start karma.conf.js"
   }
 }

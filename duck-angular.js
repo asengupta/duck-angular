@@ -24,7 +24,7 @@ THE SOFTWARE.
 */
 
 var logDebug = function(text) {
-  if (DUCK_DEBUG)
+  if (typeof(DUCK_DEBUG) != "undefined" && DUCK_DEBUG)
     console.log("[Duck DEBUG] " + text);
 };
 
@@ -170,7 +170,7 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     var stubScope = function(duckScope, mockScope){
-      if(mockScope.$parent) {
+      if(mockScope && mockScope.$parent) {
         mockScope.$parent = stubScope(duckScope.$parent, mockScope.$parent);
       }
       mockScope = _.extend(duckScope, mockScope || {});
@@ -269,7 +269,7 @@ var duckCtor = function (_, angular, Q, $) {
       // Mojo, we wrote a function that more thoroughly stubs out $scope.$parent recursively
       if(multipleControllersFeature(featureOptions)){
         dependencies = stubScopes(scope, dependencies, controllerName);
-      } else if(dependencies.$scope){
+      } else {
         dependencies.$scope = stubScopes(scope, dependencies, controllerName);
       }
       

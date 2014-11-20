@@ -4,10 +4,9 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
 
     beforeEach(function() {
       var mockApp = angular.module('foo', []);
-      mockApp.controller('bar', function($scope) {});
-
+      mockApp.controller('bar', ["$scope", function($scope) {}]);
       duckDom = duckAngular
-        .ContainerBuilder.build("foo", mockApp)
+        .ContainerBuilder.withDependencies({}).build("foo", mockApp)
         .domMvc("bar", "test/duckElement.html", {});
     });
 
