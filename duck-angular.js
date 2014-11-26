@@ -24,7 +24,7 @@ THE SOFTWARE.
 */
 
 var logDebug = function(text) {
-  if (DUCK_DEBUG)
+  if (typeof(DUCK_DEBUG) != "undefined" && DUCK_DEBUG)
     console.log("[Duck DEBUG] " + text);
 };
 
@@ -170,7 +170,7 @@ var duckCtor = function (_, angular, Q, $) {
     };
 
     var stubScope = function(duckScope, mockScope){
-      if(mockScope.$parent) {
+      if(mockScope && mockScope.$parent) {
         mockScope.$parent = stubScope(duckScope.$parent, mockScope.$parent);
       }
       mockScope = _.extend(duckScope, mockScope || {});
@@ -269,7 +269,7 @@ var duckCtor = function (_, angular, Q, $) {
       // Mojo, we wrote a function that more thoroughly stubs out $scope.$parent recursively
       if(multipleControllersFeature(featureOptions)){
         dependencies = stubScopes(scope, dependencies, controllerName);
-      } else if(dependencies.$scope){
+      } else {
         dependencies.$scope = stubScopes(scope, dependencies, controllerName);
       }
       
@@ -560,14 +560,14 @@ var duckCtor = function (_, angular, Q, $) {
 
     var duckElement = {
       isVisible: function () {
-        if(this.size() <=0){
-          throw(new Error("Element does not exist"));
-        }
-        return !this.hasClass("ng-hide");
+        return !this.isHidden();
       },
 
       isHidden: function () {
-        return !this.isVisible();
+        if(this.size() <=0){
+          throw(new Error("Element does not exist"));
+        }
+        return this.hasClass("ng-hide") || this.css("display") === "none" || this.parent().css("display") === "none";
       },
       isFocused: function () {
         var deferred = Q.defer();

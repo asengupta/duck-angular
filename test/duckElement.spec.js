@@ -4,10 +4,9 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
 
     beforeEach(function() {
       var mockApp = angular.module('foo', []);
-      mockApp.controller('bar', function($scope) {});
-
+      mockApp.controller('bar', ["$scope", function($scope) {}]);
       duckDom = duckAngular
-        .ContainerBuilder.build("foo", mockApp)
+        .ContainerBuilder.withDependencies({}).build("foo", mockApp)
         .domMvc("bar", "test/duckElement.html", {});
     });
 
@@ -21,6 +20,18 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
       it("returns false for hidden element", function() {
         return duckDom.spread(function(dom, mvc) {
           expect(dom.element('#hidden-element').isVisible()).to.be.false;
+        });
+      });
+
+      it("returns false for hidden css elements", function() {
+        return duckDom.spread(function(dom, mvc) {
+          expect(dom.element('#css-hidden-element').isVisible()).to.be.false;
+        });
+      });
+
+      it("returns false for hidden parent css elements", function() {
+        return duckDom.spread(function(dom, mvc) {
+          expect(dom.element('#css-child-hidden-element').isVisible()).to.be.false;
         });
       });
 

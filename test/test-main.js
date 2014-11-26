@@ -12,11 +12,11 @@ requirejs.config({
   baseUrl: '/base',
 
   paths: {
-    'angular': 'node_modules/angular/lib/angular',
+    'angular': 'node_modules/angular/angular',
     'underscore': 'node_modules/underscore/underscore',
     'Q': 'node_modules/q/q',
     'jquery': 'node_modules/jquery/dist/jquery',
-    'text': 'node_modules/text/text'
+    'text': 'node_modules/requirejs-text/text'
   },
 
   shim: {
