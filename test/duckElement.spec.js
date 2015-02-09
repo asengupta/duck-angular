@@ -1,4 +1,4 @@
-define(['duck-angular', 'angular'], function(duckAngular, angular) {
+define(['duck-angular', 'angular', 'jquery'], function(duckAngular, angular) {
   describe("duckElement", function() {
     var duckDom;
 
@@ -8,7 +8,7 @@ define(['duck-angular', 'angular'], function(duckAngular, angular) {
 
       duckDom = duckAngular
         .ContainerBuilder.build("foo", mockApp)
-        .domMvc("bar", "test/duckElement.html", {});
+        .domMvc("bar", "test/duckElement.html", {'$scope': {}});
     });
 
     describe('.isVisible()', function() {
