@@ -24,7 +24,7 @@ THE SOFTWARE.
 */
 
 var logDebug = function(text) {
-  if (DUCK_DEBUG)
+  if (window.DUCK_DEBUG)
     console.log("[Duck DEBUG] " + text);
 };
 
