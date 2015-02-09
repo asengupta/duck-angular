@@ -12,7 +12,7 @@ requirejs.config({
   baseUrl: '/base',
 
   paths: {
-    'angular': 'node_modules/angular/lib/angular',
+    'angular': 'node_modules/angular/lib/angular.min',
     'underscore': 'node_modules/underscore/underscore',
     'Q': 'node_modules/q/q',
     'jquery': 'node_modules/jquery/dist/jquery',

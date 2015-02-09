@@ -14,7 +14,7 @@
     "chai": "",
     "karma-requirejs": "",
     "karma-phantomjs-launcher": "",
-    "angular": "",
+    "angular": "1.2.9",
     "jquery": "",
     "q": "v1",
     "underscore": "",

@@ -4,7 +4,7 @@ module.exports = function(config) {
     frameworks: ['requirejs', 'mocha', 'sinon', 'chai'],
     files: [
       'test/test-main.js',
-      {pattern: 'node_modules/angular/lib/angular.js', included: false},
+      {pattern: 'node_modules/angular/lib/angular.min.js', included: false},
       {pattern: 'node_modules/underscore/underscore.js', included: false},
       {pattern: 'node_modules/q/q.js', included: false},
       {pattern: 'node_modules/jquery/dist/jquery.js', included: false},
