@@ -15,7 +15,7 @@ An example AngularJS app using RequireJS and Duck-Angular is at https://github.c
 * [Mocha + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/master)
 * [Jasmine + RequireJS](https://github.com/asengupta/AngularJS-RequireJS-Seed/tree/karma-jasmine)
 
-An example which does not use RequireJS as part of the app is available at: [Angular-Toy](https://github.com/kylehodgson/angular-toy).
+duck-angular currently relies on RequireJS.
 
 duck-angular is a container for bootstrapping and testing AngularJS views and controllers in memory: no browser or external process needed.
 
